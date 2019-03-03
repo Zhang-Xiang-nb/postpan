@@ -76,12 +76,14 @@ TaRegression::Init (TaInput& input)
   PanCuts = fInput->GetConfig().GetPanCuts();
 
   Int_t ev[2];
-  fPairTree->SetBranchAddress("evt_ev_num",ev);
-  //  leaf_evnum = (TLeaf*) fPairTree->GetLeaf("evt_ev_num");
+  // fPairTree->SetBranchAddress("evt_ev_num",ev);
 
   // Get the DV leafs and check if they exist in the Tree.
   for(UInt_t i=0; i<DVnames.size(); i++) {
-    leaf_dvmon.push_back((TLeaf*)fPairTree->GetLeaf(DVnames[i]));
+    TBranch* branch_buff = (TBranch*)fPairTree->GetBranch(DVnames[i]);
+    TLeaf* leaf_buff = (TLeaf*)branch_buff->GetLeaf("hw_sum");
+    leaf_dvmon.push_back(leaf_buff);
+    // leaf_dvmon.push_back((TLeaf*)fPairTree->GetLeaf(DVnames[i]));
   }
 
   for(UInt_t i=0; i<DVnames.size(); i++) {
@@ -101,7 +103,9 @@ TaRegression::Init (TaInput& input)
 
   // Get the IV leafs and check if they exist in the Tree.
   for(UInt_t i=0; i<IVnames.size(); i++) {
-    leaf_ivmon.push_back((TLeaf*)fPairTree->GetLeaf(IVnames[i]));
+    TBranch* branch_buff = (TBranch*)fPairTree->GetBranch(IVnames[i]);
+    TLeaf* leaf_buff = (TLeaf*)branch_buff->GetLeaf("hw_sum");
+    leaf_ivmon.push_back(leaf_buff);
   }
   for(UInt_t i=0; i<IVnames.size(); i++) {
     if(!leaf_ivmon[i]) {
@@ -187,7 +191,7 @@ TaRegression::Init (TaInput& input)
   // Get the custom cut, if it's there..
   TCut customcut;
   TEventList *regEList=0;
-  if(fInput->GetConfig().GetCustomCut().first=="P") {
+  if(fInput->GetConfig().GetCustomCut().first=="mul") {
     cout << "Getting PairTree Entries satisfying customcut.." << endl;
     customcut = fInput->GetConfig().GetCustomCut().second;
     fPairTree->Draw(">>regEList",customcut);
