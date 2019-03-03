@@ -81,19 +81,14 @@ Int_t TaInput::Init(string runfile_str) {
 #endif
   
   TString runfile(runfile_str);
-  // A horrible way of getting the run number from the file name.
-  //  (until I can get it from the ROOT file)
-  // char *first_ptr;
-  // char *last_ptr;
-  // string runfile_copy = runfile;
-  // first_ptr = strchr(runfile_copy.c_str(),'_');
-  // *first_ptr = '\0';
-  // ++first_ptr;
-  // last_ptr = strchr(first_ptr,'.');
-  // *last_ptr = '\0';
-  // ++last_ptr;
-  // fRunNumber = atoi(first_ptr);
-  // TaFileName::Setup (fRunNumber, "");
+
+  Ssiz_t first_t = runfile.Last('_')+1;
+  Ssiz_t last_t = runfile.Last('.');
+  Int_t length_t = last_t -first_t;
+  TString run_num = runfile(first_t,length_t);
+  fRunNumber = atoi(run_num);
+
+  TaFileName::Setup (fRunNumber, "");
 
   // Open and Read config file.  This is before root file in case
   // options are to be read from conf file
