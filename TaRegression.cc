@@ -196,7 +196,7 @@ TaRegression::Init (TaInput& input)
     customcut = fInput->GetConfig().GetCustomCut().second;
     fPairTree->Draw(">>regEList",customcut);
     regEList = (TEventList*)gDirectory->Get("regEList");
-    if(regEList) 
+    if(regEList){
       if(regEList->GetN()!=0){
 	cout << "\tObtained " << regEList->GetN()
 	     << " entries satisfying customcut." << endl;
@@ -204,6 +204,8 @@ TaRegression::Init (TaInput& input)
 	regEList = 0;
 	cout << "\tNo entries obtained for customcut." << endl;
       }
+    } // followed suggestion from compiler and use explicit brace to avoid ambiguous 'else'
+
   }
 
   Bool_t goodevent = kFALSE;
@@ -217,7 +219,7 @@ TaRegression::Init (TaInput& input)
       cout << "PanCutEntries[" << ient << "][" << icut << "] = " 
 	   << PanCutEntries[ient][icut] << endl; 
 #endif
-      if (!PanCutEntries[ient][icut]) {
+      if (PanCutEntries[ient][icut]) { // Adapted for JAPAN ErrorFlag convention
 	goodevent = kFALSE;
 	break;
       } else {
