@@ -219,7 +219,7 @@ TaRegression::Init (TaInput& input)
       cout << "PanCutEntries[" << ient << "][" << icut << "] = " 
 	   << PanCutEntries[ient][icut] << endl; 
 #endif
-      if (PanCutEntries[ient][icut]) { // Adapted for JAPAN ErrorFlag convention
+      if (PanCutEntries[ient][icut]!=0) { // Adapted for JAPAN ErrorFlag convention
 	goodevent = kFALSE;
 	break;
       } else {
@@ -803,7 +803,7 @@ void TaRegression::FillTree() {
   reg.Branch("reg_mini_last_ev",&last_ev,"reg_mini_last_ev/I");
   regcoeffs.Branch("reg_mini_first_ev",&first_ev,"reg_mini_first_ev/I");
   regcoeffs.Branch("reg_mini_last_ev",&last_ev,"reg_mini_last_ev/I");
-
+  
   for(UInt_t k = 0; k<IVnames.size(); k++) {
     buff = IVnames[k];
     buff2 = IVnames[k] + "/D";
