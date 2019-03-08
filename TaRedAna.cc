@@ -58,7 +58,11 @@ Int_t TaRedAna::Init (string runfile)
   cout << "TaRedAna::Init()" << endl;
 #endif
 
-  fInput = new TaInput();
+  if(fConfFileName.IsNull()) {
+    fInput = new TaInput();
+  } else {
+    fInput = new TaInput(fConfFileName);
+  }
   if (fInput->Init(runfile) != 0) 
     return 1;
 
