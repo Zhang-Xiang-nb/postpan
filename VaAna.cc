@@ -62,7 +62,7 @@ Int_t VaAna::Init(TaInput& input) {
   // Open the ReD root file.
   TaFileName::Setup(runnumber,theAnaType.Data());
 
-  TaFileName redname = TaFileName("root",
+  TaFileName redname = TaFileName("output",
 				  fInput->GetConfig().GetCommentTag());
   cout << "Root output: " << redname.String().c_str() << endl;
   fRedFile = new TFile(redname.String().c_str(),"RECREATE");

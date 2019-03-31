@@ -225,13 +225,14 @@ TaFileName::Create (const string b,
     }
   else if (s == "root")
     {
-      suffix = GetEnvOrDef ("PAN_ROOT_FILE_SUFFIX", "root");
-      path = GetEnvOrDef ("PAN_ROOT_FILE_PATH", ".");
+      suffix = GetEnvOrDef ("NOT_DEFINED_ENV", "root");
+      path = GetEnvOrDef ("NOT_DEFINED_ENV", "/adaq1/work1/apar/japanOutput");
     }
   else if (s == "output")
     {
-      suffix = suf;
-      path = GetEnvOrDef ("PAN_OUTPUT_FILE_PATH", ".");
+      // suffix = suf;
+      suffix = GetEnvOrDef ("NOT_DEFINED_ENV", "root");
+      path = GetEnvOrDef ("NOT_DEFINED_ENV", "./ROOTfiles");
     }
   else if (s == "result")
     {
@@ -273,7 +274,7 @@ TaFileName::Basename (const RunNumber_t r)
       sprintf (temp, "%4.4d", r);
       runstr = temp;
     }
-  string prefix (GetEnvOrDef ("PAN_FILE_PREFIX", ""));
+  string prefix (GetEnvOrDef ("NOT_DEFINED_ENV", "prexALL"));
   if (prefix == "")
     {
       time_t t;

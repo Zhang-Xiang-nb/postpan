@@ -58,7 +58,7 @@ Int_t TaInput::Init(Int_t runnumber) {
 
   // Open the file
   if (fConfig->GetRootAnaType().IsNull()) {
-    TaFileName::Setup(runnumber,"standard");
+    TaFileName::Setup(runnumber,"");
   } else{
     cout << "setup for " << fConfig->GetRootAnaType().Data() << endl;
     TaFileName::Setup(runnumber,fConfig->GetRootAnaType().Data());
