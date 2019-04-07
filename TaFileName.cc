@@ -226,13 +226,13 @@ TaFileName::Create (const string b,
   else if (s == "root")
     {
       suffix = GetEnvOrDef ("NOT_DEFINED_ENV", "root");
-      path = GetEnvOrDef ("NOT_DEFINED_ENV", "/adaq1/work1/apar/japanOutput");
+      path = GetEnvOrDef ("NOT_DEFINED_ENV", "./japanOutput");
     }
   else if (s == "output")
     {
       // suffix = suf;
       suffix = GetEnvOrDef ("NOT_DEFINED_ENV", "root");
-      path = GetEnvOrDef ("NOT_DEFINED_ENV", "./ROOTfiles");
+      path = GetEnvOrDef ("NOT_DEFINED_ENV", "./japanOuput");
     }
   else if (s == "result")
     {
