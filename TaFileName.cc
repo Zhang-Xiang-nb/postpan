@@ -274,7 +274,7 @@ TaFileName::Basename (const RunNumber_t r)
       sprintf (temp, "%4.4d", r);
       runstr = temp;
     }
-  string prefix (GetEnvOrDef ("NOT_DEFINED_ENV", "prexALL"));
+  string prefix (GetEnvOrDef ("NOT_DEFINED_ENV", "prexRespin1"));
   if (prefix == "")
     {
       time_t t;
