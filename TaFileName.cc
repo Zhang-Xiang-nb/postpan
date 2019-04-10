@@ -232,7 +232,7 @@ TaFileName::Create (const string b,
     {
       // suffix = suf;
       suffix = GetEnvOrDef ("NOT_DEFINED_ENV", "root");
-      path = GetEnvOrDef ("NOT_DEFINED_ENV", "./japanOuput");
+      path = GetEnvOrDef ("NOT_DEFINED_ENV", "./japanOutput");
     }
   else if (s == "result")
     {
