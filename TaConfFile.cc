@@ -169,6 +169,9 @@ void TaConfFile::ParseLine(vector <string> line) {
       usecuts=kTRUE;  // Use cuts by default.
     }
   }
+  if (line[0] == "tree") {
+    treeName = line[1].c_str();
+  }
   if (line[0] == "rootanatype") {
     rootanatype = line[1].c_str();
   }
@@ -284,7 +287,7 @@ TaConfFile::Print() {
 	cout << endl;
       }
     }
-    
+    cout << "\t ROOT Tree being used for Regression:" << treeName << endl;
     cout << "\tDependent Variables: " << endl;
     for (Int_t i=0; i<GetDVNum(); i++) {
       cout << "\t\t" << GetDV(i) << endl;

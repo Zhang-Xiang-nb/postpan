@@ -114,9 +114,9 @@ Int_t TaInput::CommonInit() {
   // Get the Raw and Pair Trees
   fRawTree = (TTree*)fPanFile->Get("evt");
 
-  //It should be named as MulTree or enable pair-wise output in JAPAN
-  // For a quick adaption, just use 'Mul' tree in japan.
-  fPairTree = (TTree*)fPanFile->Get("mul");
+  //It should be named as 'mul' or 'pr' if it is input from JAPAN
+  TString treeName = fConfig->GetTreeName();
+  fPairTree = (TTree*)fPanFile->Get(treeName);
 #ifdef NOISY
   fRawTree->Print();
   fPairTree->Print();
