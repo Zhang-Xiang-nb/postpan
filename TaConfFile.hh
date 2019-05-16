@@ -62,6 +62,7 @@ public:
   
   TString GetRootAnaType() {return rootanatype; }
   TString GetCommentTag() {return commenttag; }
+  TString GetTreeName() {return treeName; }
   vector <TString> GetPanCuts() {return pancuts; }
   vector <TString> GetRawCuts() {return rawcuts; }
   vector <TString> GetPairCuts() {return paircuts; }
@@ -97,7 +98,7 @@ private:
   vector <TString> paircuts;  // Defined PAN PairTree Cuts
   TString rootanatype;    // string name of analysis type for input root file
   TString commenttag;     // comment tag for output files (root and res)
-  
+  TString treeName; // string name of ROOT tree to be analyzed: e.g. mul or pr (in JAPAN convention)
   vector <TString> monList;  // String Array of independent variables (monitors)
   vector <TString> detList;  // String Array of dependent variables  (detectors)
   vector <TString> ditList;  // String Array of dithering objects (coils + cavity)

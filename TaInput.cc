@@ -58,16 +58,16 @@ Int_t TaInput::Init(Int_t runnumber) {
 
   // Open the file
   if (fConfig->GetRootAnaType().IsNull()) {
-    TaFileName::Setup(runnumber,"standard");
+    TaFileName::Setup(runnumber,"");
   } else{
     cout << "setup for " << fConfig->GetRootAnaType().Data() << endl;
     TaFileName::Setup(runnumber,fConfig->GetRootAnaType().Data());
   }
   TaFileName fn = TaFileName("root");
-  cout << "PAN rootfile: " << fn.String().c_str() << endl;
+  cout << "JAPAN rootfile: " << fn.String().c_str() << endl;
   fPanFile = new TFile(fn.String().c_str(),"READ");
   if (fPanFile->IsOpen() == kFALSE) {
-    cerr << "Could not open PAN rootfile: " << fn.String().c_str() << endl;
+    cerr << "Could not open JAPAN rootfile: " << fn.String().c_str() << endl;
     return 1;
   }
 
@@ -75,25 +75,21 @@ Int_t TaInput::Init(Int_t runnumber) {
 
 }
 
-Int_t TaInput::Init(string runfile) {
+Int_t TaInput::Init(string runfile_str) {
 #ifdef DEBUG
   cout << "TaInput::Init()" << endl;
 #endif
+  
+  TString runfile(runfile_str);
 
-  // A horrible way of getting the run number from the file name.
-  //  (until I can get it from the ROOT file)
-  char *first_ptr;
-  char *last_ptr;
-
-  first_ptr = strchr(runfile.c_str(),'_');
-  *first_ptr = '\0';
-  ++first_ptr;
-  last_ptr = strchr(first_ptr,'.');
-  *last_ptr = '\0';
-  ++last_ptr;
-  fRunNumber = atoi(first_ptr);
+  Ssiz_t first_t = runfile.Last('_')+1;
+  Ssiz_t last_t = runfile.Last('.');
+  Int_t length_t = last_t -first_t;
+  TString run_num = runfile(first_t,length_t);
+  fRunNumber = atoi(run_num);
 
   TaFileName::Setup (fRunNumber, "");
+
   // Open and Read config file.  This is before root file in case
   // options are to be read from conf file
   fConfig = new TaConfFile;
@@ -103,10 +99,10 @@ Int_t TaInput::Init(string runfile) {
     fConfig->Read(fConfFileName);
   }
 
-  cout << "PAN rootfile: " << runfile << endl;
-  fPanFile = new TFile(runfile.c_str(),"READ");
+  cout << "JAPAN rootfile: " << runfile << endl;
+  fPanFile = new TFile(runfile,"READ");
   if (fPanFile->IsOpen() == kFALSE) {
-    cerr << "Could not open PAN rootfile: " << runfile.c_str() << endl;
+    cerr << "Could not open JAPAN rootfile: " << runfile << endl;
     return 1;
   }
 
@@ -116,8 +112,11 @@ Int_t TaInput::Init(string runfile) {
 
 Int_t TaInput::CommonInit() {
   // Get the Raw and Pair Trees
-  fRawTree = (TTree*)fPanFile->Get("R");
-  fPairTree = (TTree*)fPanFile->Get("P");
+  fRawTree = (TTree*)fPanFile->Get("evt");
+
+  //It should be named as 'mul' or 'pr' if it is input from JAPAN
+  TString treeName = fConfig->GetTreeName();
+  fPairTree = (TTree*)fPanFile->Get(treeName);
 #ifdef NOISY
   fRawTree->Print();
   fPairTree->Print();

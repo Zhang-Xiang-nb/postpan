@@ -50,10 +50,10 @@ else
 endif
 
 # Grow the list of sources and pan objects here.
-PANSRC = $(PANSRCPATH)/TaFileName.cc $(PANSRCPATH)/TaString.cc \
-	$(PANSRCPATH)/TaStatistics.cc  $(PANSRCPATH)/TaOResultsFile.cc
+PANSRC = $(PANSRCPATH)/TaString.cc $(PANSRCPATH)/TaStatistics.cc \
+	 $(PANSRCPATH)/TaOResultsFile.cc
 SRC = TaRedAna.cc TaConfFile.cc VaAna.cc TaRegression.cc TaInput.cc \
-	TaDitAna.cc TaDitCyc.cc Matrix.cc
+	TaDitAna.cc TaDitCyc.cc Matrix.cc TaFileName.cc
 DEPS = $(SRC:.cc=.d)
 OBJS = $(SRC:.cc=.o) 
 DOBJS = $(SRC:.cc=.o)
