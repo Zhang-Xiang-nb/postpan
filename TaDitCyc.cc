@@ -130,7 +130,7 @@ Bool_t TaDitCyc::Merge(TaDitCyc* mergeCyc) {
  	for (Int_t idet = 0 ; idet<fNDetUsed; idet++) {
 #ifdef EVILERRORMESSAGE
 	  if ((mergeObj.sDetVal[idet])[iwin]<0.1) {
-	    cout << "what the fuck! " <<  mergeCyc->GetSuperCycleNumber() 
+	    cout << "what a funny! " <<  mergeCyc->GetSuperCycleNumber() 
 		 << endl;
 	  }
 #endif
@@ -138,7 +138,7 @@ Bool_t TaDitCyc::Merge(TaDitCyc* mergeCyc) {
 #ifdef EVILERRORMESSAGE
 	  if ((fObjCycs[ic].sDetVal[idet])[fNEvObj[ic]]<0.1) {
 
- 	    cout << "Really what the fuck! " 
+ 	    cout << "Really what a funny! " 
  		 <<  " SC: " << mergeCyc->GetSuperCycleNumber() 
  		 <<  " iwin = " << iwin 
  		 <<  " iEVObj: " << fNEvObj[ic] << endl;
@@ -249,7 +249,7 @@ void TaDitCyc::CalcSlopes()
       // calculate y-mean
       for (Int_t iev = 0; iev<fNEvObj[ic]; iev++) ymean += y[iev];
       ymean /= fNEvObj[ic];
-      
+
       for (Int_t iev = 0; iev<fNEvObj[ic]; iev++) {
 	Syy += (y[iev]-ymean)*(y[iev]-ymean);
 	Sxy += (y[iev]-ymean)*(x[iev]-xmean);
@@ -274,8 +274,8 @@ void TaDitCyc::CalcSlopes()
 	return;	
     }
       // scale slope by mean detector value to get fractional change
-//       fDetDSlp[ic][idet] = b/abs(ymean);
-//       fDetDSlpE[ic][idet] = sigb/abs(ymean);
+      // fDetDSlp[ic][idet] = b/abs(ymean);
+      // fDetDSlpE[ic][idet] = sigb/abs(ymean);
       fDetDSlp[ic][idet] = (b*1e6)/(2*abs(ymean));
       fDetDSlpE[ic][idet] = (sigb*1e6)/(2*abs(ymean));
       // cout << "I fit a detector slope of " << fDetDSlp[ic][idet] << endl;
@@ -289,7 +289,6 @@ void TaDitCyc::CalcSlopes()
       // calculate y-mean
       for (Int_t iev = 0; iev<fNEvObj[ic]; iev++) ymean += y[iev];
       ymean /= fNEvObj[ic];
-      
       for (Int_t iev = 0; iev<fNEvObj[ic]; iev++) {
 	Syy += (y[iev]-ymean)*(y[iev]-ymean);
 	Sxy += (y[iev]-ymean)*(x[iev]-xmean);
@@ -299,11 +298,11 @@ void TaDitCyc::CalcSlopes()
       sigb = (Syy - Sxy*Sxy/Sxx)/(Sxx*(fNEvObj[ic]-2));
       if (sigb>0) sigb = sqrt(sigb);
       else {
-	sigb = 1.E6;
-	cout << "Error in calculating slope for Monitor " << imon 
-	     << " in cycle " << fSuperCycNum << endl;
-	fSlps_Done=kFALSE;
-	return;
+      	sigb = 1.E6;
+      	cout << "Error in calculating slope for Monitor " << imon 
+      	     << " in cycle " << fSuperCycNum << endl;
+      	fSlps_Done=kFALSE;
+      	return;
       }
 
       // for each monitor, calculate dB/dC
@@ -442,6 +441,8 @@ void TaDitCyc::LoadData(Int_t iCoil, Double_t value, Double_t DetVal[],
     // no object is currently modulated. Probably data from end of supercycle.
     // Data could be stored for each coil (with value=0), but for right now
     // data is ignored
+    cout << "TaDitCyc::LoadData -- Given Bad Modulation Object Index: "
+	 << iCoil << ",    Max Index = " << fNDitUsed << endl;
     return;
   } else if (iCoil>=fNDitUsed || iCoil<-1) {
     cout << "TaDitCyc::LoadData -- Given Bad Modulation Object Index: "

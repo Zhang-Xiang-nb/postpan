@@ -136,6 +136,7 @@ class TaDitAna : public VaAna{
 
  public:
   Int_t fNumCyc;       // number of supercycles in input data file.
+  vector <Int_t> CycleID; // Added by Tao Y. for JAPAN : A container for 'bmwcycnum'
   TaDitCyc* fProtoCyc; // prototype supercycle object
   TObjArray fDitCyc;   // array of TaDitCyc, one for each supercycle
   TaDitCyc* avgCyc;    // grand average TaDitCyc, merged from all others

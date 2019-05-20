@@ -42,7 +42,7 @@
 // 5) Results: devise output standards and histograms for both studying and 
 //             archiving results of analysis.
 //
-//    Laundy List:
+//    Laundry List:
 //        - need curmon added to config file, with normalization to be done in INIT
 //        - averaging of dithering coeffs
 //        - different "units" constants for energy bpms
@@ -59,7 +59,7 @@
 
 #define NOISY
 #define DEBUG
-#define USEPAIRTREE
+// #define USEPAIRTREE
 
 
 #include "TaDitAna.hh"
@@ -70,6 +70,7 @@
 #include "TTree.h"
 #include "TEventList.h"
 #include "TaOResultsFile.hh"
+#include "TH1D.h"
 
 #include <fstream>
 
@@ -110,15 +111,29 @@ Int_t TaDitAna::Init (TaInput& input)
   Int_t nentries = (Int_t) fRawTree->GetEntries();
 #endif
   cout << "Number of Entries = " << nentries << endl;
+
   // use number of entries to guess number of supercycles
   // supercycle ~2300 event (12x12 + 192)*7
   // ok, this number turns out to be bogus (how long is a DelayTask, anyway?)
   // but you get the idea.   I'll use 900 for now..
-#ifdef USEPAIRTREE
-  Int_t ncycles = nentries/450;
-#else
-  Int_t ncycles = nentries/900;
-#endif
+
+// #ifdef USEPAIRTREE
+//   Int_t ncycles = nentries/450;
+// #else
+//   Int_t ncycles = nentries/900;
+// #endif
+
+  // Updated Cycle Counter : Tao Y.
+  Int_t max_count = 100;
+  TH1D *hCycCounter = new TH1D("hCycCounter","",max_count,-0.5,max_count-0.5);
+  fRawTree->Draw("bmwcycnum>>hCycCounter","bmwcycnum>=0","goff");
+  for(int ibin=1;ibin<=max_count;ibin++){
+    Int_t binContent = hCycCounter->GetBinContent(ibin);
+    if(binContent>4000)  // a cycle with sufficient samples
+      CycleID.push_back(ibin);
+  }
+  Int_t ncycles = CycleID.size();
+
   if(ncycles>16)   fDitCyc.Expand(ncycles);
   fProtoCyc = new TaDitCyc(); // make prototype cycle 
 
@@ -133,14 +148,28 @@ Int_t TaDitAna::Init (TaInput& input)
     // indexes from bmwobject, which requires DitMap
     TString ditname = DitList[id];
     Int_t ditindex = -1;
-    if (ditname.Contains("1H",TString::kIgnoreCase)) ditindex = 0;
-    else if (ditname.Contains("2H",TString::kIgnoreCase)) ditindex = 1;
-    else if (ditname.Contains("3V",TString::kIgnoreCase)) ditindex = 2;
-    else if (ditname.Contains("8H",TString::kIgnoreCase)) ditindex = 3;
-    else if (ditname.Contains("8V",TString::kIgnoreCase)) ditindex = 4;
-    else if (ditname.Contains("10H",TString::kIgnoreCase)) ditindex = 5;
-    else if (ditname.Contains("10V",TString::kIgnoreCase)) ditindex = 6;
-    else if (ditname.Contains("SL20",TString::kIgnoreCase)) ditindex = 7;
+
+    // if (ditname.Contains("1H",TString::kIgnoreCase)) ditindex = 0;
+    // else if (ditname.Contains("2H",TString::kIgnoreCase)) ditindex = 1;
+    // else if (ditname.Contains("3V",TString::kIgnoreCase)) ditindex = 2;
+    // else if (ditname.Contains("8H",TString::kIgnoreCase)) ditindex = 3;
+    // else if (ditname.Contains("8V",TString::kIgnoreCase)) ditindex = 4;
+    // else if (ditname.Contains("10H",TString::kIgnoreCase)) ditindex = 5;
+    // else if (ditname.Contains("10V",TString::kIgnoreCase)) ditindex = 6;
+    // else if (ditname.Contains("SL20",TString::kIgnoreCase)) ditindex = 7;
+    
+    // Following dither name for Spring19 run 1473-1474 modulation test 
+    // At some point, we may need to switch back to above naming. - Tao Y.
+
+    if (ditname.Contains("trim1",TString::kIgnoreCase)) ditindex = 0;
+    else if (ditname.Contains("trim2",TString::kIgnoreCase)) ditindex = 1;
+    else if (ditname.Contains("trim3",TString::kIgnoreCase)) ditindex = 2;
+    else if (ditname.Contains("trim4",TString::kIgnoreCase)) ditindex = 3;
+    else if (ditname.Contains("trim5",TString::kIgnoreCase)) ditindex = 4;
+    else if (ditname.Contains("trim6",TString::kIgnoreCase)) ditindex = 5;
+    else if (ditname.Contains("trim7",TString::kIgnoreCase)) ditindex = 6;
+    else if (ditname.Contains("trim8",TString::kIgnoreCase)) ditindex = 7;
+
     if (ditindex>=0 && ditindex<fgNCoils) {
       if (DitMap[ditindex]==-1) {
 	DitIndex[id]=ditindex;  // for extra safety, raw index for each coil in list
@@ -188,10 +217,10 @@ Int_t TaDitAna::Init (TaInput& input)
   MonList = fInput->GetConfig().GetMonList();
 #ifdef USEPAIRTREE
   for(UInt_t i=0; i<DetList.size(); i++) {
-    DetList[i].Prepend("avg_n_");
+    DetList[i].Prepend("yield_");
   }
   for(UInt_t i=0; i<MonList.size(); i++) {
-    MonList[i].Prepend("avg_");
+    MonList[i].Prepend("yield_");
   }
 #endif
   // If compiled with USEPAIRTREE, ok_cut is hard-coded.
@@ -210,7 +239,8 @@ Int_t TaDitAna::Init (TaInput& input)
     CurMon = fInput->GetConfig().GetCurMon();
     cout << " Control file suggests use of Curmon  " << CurMon << endl;
 #endif
-  }
+  }else
+    fUseCurMon=kFALSE;
   
   // finish prototyping the DitCyc in LoadModData, after
   // lists have been trimmed by availability in the tree  
@@ -239,24 +269,30 @@ Bool_t TaDitAna::LoadModData()
 #ifdef USEPAIRTREE
   Double_t EvR_evNum;
 #else
-  Int_t EvR_evNum;
+  Double_t EvR_evNum;  // Hmm... JAPAN assign type Double_t to event_number
 #endif
-  Double_t EvR_bmwClean,EvR_bmwCycle,EvR_bmwValue,EvR_bmwObject;
-
+  Double_t EvR_bmwCycle,EvR_bmwObject;
+  vector <TLeaf*> leaf_trimcard; // JAPAN assigns an independent channel for each trimcard
   // These words are unchecked: if they do not exist in the tree,
   // expect spectacular failure.
-#ifdef USEPAIRTREE
-  fPairTree->SetBranchAddress("m_ev_num",&(EvR_evNum));
-  fPairTree->SetBranchAddress("avg_bmwcln",&(EvR_bmwClean));
-  fPairTree->SetBranchAddress("avg_bmwcyc",&(EvR_bmwCycle));
-  fPairTree->SetBranchAddress("avg_bmwval",&(EvR_bmwValue));
-  fPairTree->SetBranchAddress("avg_bmwobj",&(EvR_bmwObject));
+#ifdef USEPAIRTREE  // To-do - Tao Y.
+  // fPairTree->SetBranchAddress("m_ev_num",&(EvR_evNum));
+  // fPairTree->SetBranchAddress("avg_bmwcln",&(EvR_bmwClean));
+  // fPairTree->SetBranchAddress("avg_bmwcyc",&(EvR_bmwCycle));
+  // fPairTree->SetBranchAddress("avg_bmwval",&(EvR_bmwValue));
+  // fPairTree->SetBranchAddress("avg_bmwobj",&(EvR_bmwObject));
 #else
-  fRawTree->SetBranchAddress("ev_num",&(EvR_evNum));
-  fRawTree->SetBranchAddress("bmwcln",&(EvR_bmwClean));
-  fRawTree->SetBranchAddress("bmwcyc",&(EvR_bmwCycle));
-  fRawTree->SetBranchAddress("bmwval",&(EvR_bmwValue));
+  fRawTree->SetBranchAddress("event_number",&(EvR_evNum));
+  // fRawTree->SetBranchAddress("bmwcln",&(EvR_bmwClean)); // A clean flag is not available in JAPAN at this point
+  fRawTree->SetBranchAddress("bmwcycnum",&(EvR_bmwCycle));
   fRawTree->SetBranchAddress("bmwobj",&(EvR_bmwObject));
+  // fRawTree->SetBranchAddress("bmwval",&(EvR_bmwValue)); // Replaced by a list of trimcard leaves  
+  for (UInt_t id = 0; id<DitList.size(); id++) {
+    TBranch* trimcard_branch =(TBranch*)fRawTree->GetBranch(DitList[id]);
+    TLeaf* this_leaf =(TLeaf*)trimcard_branch->GetLeaf("value");
+    leaf_trimcard.push_back(this_leaf);
+  }
+
 #endif
 
   // **
@@ -275,9 +311,11 @@ Bool_t TaDitAna::LoadModData()
   // **
   for(UInt_t i=0; i<DetList.size(); i++) {
 #ifdef USEPAIRTREE
-    leaf_det.push_back((TLeaf*)fPairTree->GetLeaf(DetList[i]));
+    // leaf_det.push_back((TLeaf*)fPairTree->GetLeaf(DetList[i]));
 #else
-    leaf_det.push_back((TLeaf*)fRawTree->GetLeaf(DetList[i]));
+    TBranch *branch_buff = (TBranch*)fRawTree->GetBranch(DetList[i]);
+    TLeaf *leaf_buff  = (TLeaf*)branch_buff->GetLeaf("hw_sum");
+    leaf_det.push_back(leaf_buff);
 #endif
   }
 
@@ -310,9 +348,11 @@ Bool_t TaDitAna::LoadModData()
   // **
   for(UInt_t i=0; i<MonList.size(); i++) {
 #ifdef USEPAIRTREE
-    leaf_mon.push_back((TLeaf*)fPairTree->GetLeaf(MonList[i]));
+    // leaf_mon.push_back((TLeaf*)fPairTree->GetLeaf(MonList[i]));
 #else
-    leaf_mon.push_back((TLeaf*)fRawTree->GetLeaf(MonList[i]));
+    TBranch *branch_buff = (TBranch*)fRawTree->GetBranch(MonList[i]);
+    TLeaf *leaf_buff  = (TLeaf*)branch_buff->GetLeaf("hw_sum");
+    leaf_mon.push_back(leaf_buff);
 #endif
   }
   for(UInt_t i=0; i<MonList.size(); i++) {
@@ -366,12 +406,12 @@ Bool_t TaDitAna::LoadModData()
   TCut customcut;
   TEventList *ditEList=0;
 #ifdef USEPAIRTREE
-  if(fInput->GetConfig().GetCustomCut().first=="P") {
+  if(fInput->GetConfig().GetCustomCut().first=="pr") {
     cout << "Getting PairTree Entries satisfying customcut.." << endl;
     customcut = fInput->GetConfig().GetCustomCut().second;
     fPairTree->Draw(">>ditEList",customcut);
 #else
-  if(fInput->GetConfig().GetCustomCut().first=="R") {
+  if(fInput->GetConfig().GetCustomCut().first=="evt") {
     cout << "Getting RawTree Entries satisfying customcut.." << endl;
     customcut = fInput->GetConfig().GetCustomCut().second;
     fRawTree->Draw(">>ditEList",customcut);
@@ -392,7 +432,8 @@ Bool_t TaDitAna::LoadModData()
   // **
 
   if (fUseCurMon) {
-    leaf_curmon = (TLeaf*) fRawTree->GetLeaf(CurMon);
+    TBranch* branch_buff = (TBranch*)fRawTree->GetBranch(CurMon);
+    leaf_curmon =  (TLeaf*)branch_buff->GetLeaf("hw_sum");
     fUseCurMon=kTRUE;
     if (!leaf_curmon) {
       cerr << "Current Monitor " << CurMon << " does not exist in Raw Tree. " 
@@ -443,16 +484,16 @@ Bool_t TaDitAna::LoadModData()
     //////////////////////////////////////////////////
     // Need to check this bmwClean average...
     //////////////////////////////////////////////////
-    isClean = (((int) EvR_bmwClean) == 1) && (last_evNum-EvR_evNum<=2.0);
+    // isClean = (((int) EvR_bmwClean) == 1) && (last_evNum-EvR_evNum<=2.0);
+    isClean = (last_evNum-EvR_evNum<=2.0);
 #else
-    isClean = (((int) EvR_bmwClean) == 1) && (EvR_evNum-1==last_evNum);
+    // isClean = (((int) EvR_bmwClean) == 1) && (EvR_evNum-1==last_evNum);
+    isClean = (EvR_evNum-1==last_evNum);
 #endif
     last_evNum=EvR_evNum;
     Int_t evNum = (Int_t) EvR_evNum; // bad rounding, don't care
 
-    lastObject = (int) EvR_bmwObject;
-    lastValue = EvR_bmwValue * 1.E-5;
-
+    lastObject = (int) (EvR_bmwObject-1); // JAPAN bmwobj index starts from 1
 
     if (EvR_bmwCycle<=0 && lastObject<0) {  // ** not a step in a cycle
       if (inCycle) {
@@ -485,13 +526,7 @@ Bool_t TaDitAna::LoadModData()
 #ifdef NOISY
 	cout << "TaDitAna:: starting new supercycle " << EvR_bmwCycle
 	     << " at event " << evNum << endl;
-// 	cout << "TaDitAna:: starting new supercycle " << EvR_bmwCycle
-// 	     << " at event " << iEv << endl;
 #endif
-// 	if ((avgCyc->GetFirstEvent())>iEv || (avgCyc->GetFirstEvent())<1) 
-// 	  avgCyc->SetFirstEvent(iEv);
-//
-// 	if (curCyc!=0) curCyc->SetLastEvent(iEv);
 	if ((avgCyc->GetFirstEvent())>evNum || (avgCyc->GetFirstEvent())<1) 
 	  avgCyc->SetFirstEvent(evNum);
 
@@ -515,7 +550,8 @@ Bool_t TaDitAna::LoadModData()
       // **
       Bool_t passRawCuts = kTRUE;
       for (Int_t icut = 0; icut<fNRwCuts; icut++) 
-	if (leaf_cut[icut]->GetValue()) passRawCuts=kFALSE;  // cut failed 
+	// the following condition only works for JAPAN ErrorFlag convention - Tao Y.
+	if ((leaf_cut[icut]->GetValue())!=0 ) passRawCuts=kFALSE;  // cut failed  
       if(ditEList) {
 	if(!ditEList->Contains(iEv)) passRawCuts=kFALSE; //customcut failed
       }
@@ -532,7 +568,6 @@ Bool_t TaDitAna::LoadModData()
 	  // then, is DitMap reasonably set?
 	  Int_t icoil = DitMap[lastObject];
 	  if (icoil>-1 && icoil<fNDit) {
-
 	    for (Int_t idet=0; idet<fNDet; idet++) {
 	      DetData[idet]= leaf_det[idet]->GetValue();
 	      if (fUseCurMon) DetData[idet] = DetData[idet]/leaf_curmon->GetValue();
@@ -540,14 +575,12 @@ Bool_t TaDitAna::LoadModData()
 	    for (Int_t imon=0; imon<fNMon; imon++)
 	      MonData[imon]= leaf_mon[imon]->GetValue();
 
-
 	    // Finally, check the limit cut:
-	    if ( abs(lastValue*1e5)<DitLimit[icoil] ) {
+	    lastValue = leaf_trimcard[icoil]->GetValue();
+	    if ( abs(lastValue)<DitLimit[icoil] ) {
 	      // send this data (detector, monitor, coil + value) to the DitCyc
 	      ((TaDitCyc*) fDitCyc.UncheckedAt(icurCyc))
-		->LoadData(icoil, lastValue,
-			   &(DetData[0]),&(MonData[0]));
-	      
+		->LoadData(icoil, lastValue,&(DetData[0]),&(MonData[0]));
 	      // send this data to the average cycle, also
 	      avgCyc->LoadData(icoil, lastValue,
 			       &(DetData[0]),&(MonData[0]));
@@ -564,8 +597,8 @@ Bool_t TaDitAna::LoadModData()
       } else {
 	// one could use this space to count the number of failures, for the ditcyc
 	((TaDitCyc*) fDitCyc.UncheckedAt(icurCyc))->StepLostEventCounter();	
-// 	cout << ((TaDitCyc*) fDitCyc.UncheckedAt(icurCyc))->GetLostEventCounter()
-// 	     << "  for DitCyc " << icurCyc << endl;
+	// cout << ((TaDitCyc*) fDitCyc.UncheckedAt(icurCyc))->GetLostEventCounter()
+	//      << "  for DitCyc " << icurCyc << endl;
       }
     }
   }  // end loop over all events in tree
@@ -581,6 +614,7 @@ Bool_t TaDitAna::LoadModData()
   }
   
   fNumCyc = fDitCyc.GetLast() + 1;
+  cout << "fNumCyc: " << fNumCyc << endl;
 #ifdef NOISY
   cout << "Finished loading data" << endl;
 #endif
