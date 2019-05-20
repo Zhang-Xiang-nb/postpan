@@ -16,11 +16,6 @@ ifdef INSURE
   GLD=insure
 endif
 
-ifdef PAN_SRC_PATH
-	PANSRCPATH = $(PAN_SRC_PATH)
-else
-	PANSRCPATH    = ../../../pan/src
-endif
 ROOTLIBS      = $(shell root-config --libs)
 ROOTGLIBS     = $(shell root-config --glibs)
 INCLUDES      = -I$(ROOTSYS)/include
@@ -30,9 +25,7 @@ LD            = $(GLD)
 LDFLAGS       = 
 SOFLAGS       = -shared 
 GLIBS         = $(ROOTGLIBS) -L/usr/X11R6/lib -lXpm -lX11
-LIBPANCLASS   = $(PANSRCPATH)/libpan.a
-LIBS          = $(GLIBS) $(ROOTLIBS) $(ROOTGLIBS) $(LIBPANCLASS)
-INCLUDES     += -I$(PANSRCPATH)
+LIBS          = $(GLIBS) $(ROOTLIBS) $(ROOTGLIBS)
 
 MAKEDEPEND    = $(GCC)
 
@@ -50,14 +43,14 @@ else
 endif
 
 # Grow the list of sources and pan objects here.
-PANSRC = $(PANSRCPATH)/TaString.cc $(PANSRCPATH)/TaStatistics.cc \
-	 $(PANSRCPATH)/TaOResultsFile.cc
-SRC = TaRedAna.cc TaConfFile.cc VaAna.cc TaRegression.cc TaInput.cc \
-	TaDitAna.cc TaDitCyc.cc Matrix.cc TaFileName.cc
+
+SRC = 	TaRedAna.cc TaConfFile.cc VaAna.cc TaRegression.cc TaInput.cc \
+	TaDitAna.cc TaDitCyc.cc Matrix.cc TaFileName.cc TaString.cc\
+	TaStatistics.cc TaOResultsFile.cc
 DEPS = $(SRC:.cc=.d)
 OBJS = $(SRC:.cc=.o) 
 DOBJS = $(SRC:.cc=.o)
-HEAD = $(SRC:.cc=.hh) $(PANSRC:.cc=.hh)
+HEAD = $(SRC:.cc=.hh) 
 
 # Make the dictionary
   CXXFLAGS += -DDICT
