@@ -59,8 +59,6 @@
 
 #define NOISY
 #define DEBUG
-// #define USEPAIRTREE
-
 
 #include "TaDitAna.hh"
 #include "TaDitCyc.hh"
@@ -102,28 +100,10 @@ Int_t TaDitAna::Init (TaInput& input)
   //  Call the Common init.
   if (VaAna::Init(input) != 0)
     return 1;
-
-#ifdef USEPAIRTREE
-  cout << "TaDitAna compiled to use the PAN PAIR Tree." << endl;
-  Int_t nentries = (Int_t) fPairTree->GetEntries();
-#else 
-  cout << "TaDitAna compiled to use the PAN RAW Tree." << endl;
   Int_t nentries = (Int_t) fRawTree->GetEntries();
-#endif
   cout << "Number of Entries = " << nentries << endl;
 
-  // use number of entries to guess number of supercycles
-  // supercycle ~2300 event (12x12 + 192)*7
-  // ok, this number turns out to be bogus (how long is a DelayTask, anyway?)
-  // but you get the idea.   I'll use 900 for now..
-
-// #ifdef USEPAIRTREE
-//   Int_t ncycles = nentries/450;
-// #else
-//   Int_t ncycles = nentries/900;
-// #endif
-
-  // Updated Cycle Counter : Tao Y.
+  // A new Cycle Counter - Tao Y.
   Int_t max_count = 100;
   TH1D *hCycCounter = new TH1D("hCycCounter","",max_count,-0.5,max_count-0.5);
   fRawTree->Draw("bmwcycnum>>hCycCounter","bmwcycnum>=0","goff");
@@ -215,38 +195,23 @@ Int_t TaDitAna::Init (TaInput& input)
   // need lists of detectors, monitors, and cuts
   DetList = fInput->GetConfig().GetDetList();
   MonList = fInput->GetConfig().GetMonList();
-#ifdef USEPAIRTREE
-  for(UInt_t i=0; i<DetList.size(); i++) {
-    DetList[i].Prepend("yield_");
-  }
-  for(UInt_t i=0; i<MonList.size(); i++) {
-    MonList[i].Prepend("yield_");
-  }
-#endif
-  // If compiled with USEPAIRTREE, ok_cut is hard-coded.
-#ifndef USEPAIRTREE
-  RwPanCuts = fInput->GetConfig().GetRawCuts();
-#endif
-
   if (fInput->GetConfig().UseCurMon()) {
-#ifdef USEPAIRTREE
-    fUseCurMon=kFALSE;
-    cout << " Control file suggests use of Curmon  " << CurMon << endl;
-    cout << "   HOWEVER.  Dithering compiled to use the pairtree." << endl
-	 << "   So this request is ignored." << endl;
-#else
+    // A useful check, will apply with furture work - Tao Y.
+    // fUseCurMon=kFALSE;
+    // cout << " Control file suggests use of Curmon  " << CurMon << endl;
+    // cout << "   HOWEVER.  Dithering compiled to use the pairtree." << endl
+    // 	 << "   So this request is ignored." << endl;
     fUseCurMon=kTRUE;
     CurMon = fInput->GetConfig().GetCurMon();
     cout << " Control file suggests use of Curmon  " << CurMon << endl;
-#endif
-  }else
+  }
+  else
     fUseCurMon=kFALSE;
   
   // finish prototyping the DitCyc in LoadModData, after
   // lists have been trimmed by availability in the tree  
 
   LoadModData(); // load data from raw tree
-
 
   return 0;
 }
@@ -266,34 +231,24 @@ Bool_t TaDitAna::LoadModData()
   // branch has only one leaf...  It's easier for me to think of this
   // approach for single words from the tree.  Anyhoo...
   // **
-#ifdef USEPAIRTREE
-  Double_t EvR_evNum;
-#else
-  Double_t EvR_evNum;  // Hmm... JAPAN assign type Double_t to event_number
-#endif
+
+  Double_t EvR_evNum;  // Hmm... JAPAN assigns type Double_t to event_number...
+
   Double_t EvR_bmwCycle,EvR_bmwObject;
   vector <TLeaf*> leaf_trimcard; // JAPAN assigns an independent channel for each trimcard
   // These words are unchecked: if they do not exist in the tree,
   // expect spectacular failure.
-#ifdef USEPAIRTREE  // To-do - Tao Y.
-  // fPairTree->SetBranchAddress("m_ev_num",&(EvR_evNum));
-  // fPairTree->SetBranchAddress("avg_bmwcln",&(EvR_bmwClean));
-  // fPairTree->SetBranchAddress("avg_bmwcyc",&(EvR_bmwCycle));
-  // fPairTree->SetBranchAddress("avg_bmwval",&(EvR_bmwValue));
-  // fPairTree->SetBranchAddress("avg_bmwobj",&(EvR_bmwObject));
-#else
+
   fRawTree->SetBranchAddress("event_number",&(EvR_evNum));
   // fRawTree->SetBranchAddress("bmwcln",&(EvR_bmwClean)); // A clean flag is not available in JAPAN at this point
   fRawTree->SetBranchAddress("bmwcycnum",&(EvR_bmwCycle));
   fRawTree->SetBranchAddress("bmwobj",&(EvR_bmwObject));
-  // fRawTree->SetBranchAddress("bmwval",&(EvR_bmwValue)); // Replaced by a list of trimcard leaves  
+
   for (UInt_t id = 0; id<DitList.size(); id++) {
     TBranch* trimcard_branch =(TBranch*)fRawTree->GetBranch(DitList[id]);
     TLeaf* this_leaf =(TLeaf*)trimcard_branch->GetLeaf("value");
     leaf_trimcard.push_back(this_leaf);
   }
-
-#endif
 
   // **
   // Grab the Leafs from the Tree.
@@ -302,21 +257,15 @@ Bool_t TaDitAna::LoadModData()
   vector <TLeaf*> leaf_det;
   vector <TLeaf*> leaf_cut;
   TLeaf* leaf_curmon;
-#ifdef USEPAIRTREE
-  TLeaf* leaf_okcut = (TLeaf*)fPairTree->GetLeaf("ok_cut");
-#endif
 
   // **
   // Get the Det leafs and check if they exist in the Tree
   // **
+
   for(UInt_t i=0; i<DetList.size(); i++) {
-#ifdef USEPAIRTREE
-    // leaf_det.push_back((TLeaf*)fPairTree->GetLeaf(DetList[i]));
-#else
     TBranch *branch_buff = (TBranch*)fRawTree->GetBranch(DetList[i]);
     TLeaf *leaf_buff  = (TLeaf*)branch_buff->GetLeaf("hw_sum");
     leaf_det.push_back(leaf_buff);
-#endif
   }
 
   for(UInt_t i=0; i<DetList.size(); i++) {
@@ -330,30 +279,26 @@ Bool_t TaDitAna::LoadModData()
   }
   fNDet = DetList.size();
   fProtoCyc->SetDetNum(fNDet);
+
 #ifdef NOISY
   for(Int_t i=0; i<fNDet; i++) {
     cout << "Detector " << i << ": " << DetList[i] << endl;
   }
 #endif
-  if (fNDet>fgMxNDet) {
+
+  if (fNDet>fgMxNDet) {  // But why there is a limit on number of detector -Tao Y.
     cout << "Too Many Detectors defined:" << 
       "Recompile TaDitAna with larger maximum!" <<endl;
     return kFALSE;
   }
 
-
-
   // **
   // Get the Mon leafs and check if they exist in the Tree
   // **
   for(UInt_t i=0; i<MonList.size(); i++) {
-#ifdef USEPAIRTREE
-    // leaf_mon.push_back((TLeaf*)fPairTree->GetLeaf(MonList[i]));
-#else
     TBranch *branch_buff = (TBranch*)fRawTree->GetBranch(MonList[i]);
     TLeaf *leaf_buff  = (TLeaf*)branch_buff->GetLeaf("hw_sum");
     leaf_mon.push_back(leaf_buff);
-#endif
   }
   for(UInt_t i=0; i<MonList.size(); i++) {
     if(!leaf_mon[i]) {
@@ -395,7 +340,7 @@ Bool_t TaDitAna::LoadModData()
   }
 #ifdef NOISY
   for(UInt_t i=0; i<RwPanCuts.size(); i++) {
-    cout << "Raw PanCuts " << i << ": " << RwPanCuts[i] << endl;
+    cout << "Raw Event Cuts " << i << ": " << RwPanCuts[i] << endl;
   }
 #endif
   fNRwCuts = RwPanCuts.size();
@@ -405,17 +350,16 @@ Bool_t TaDitAna::LoadModData()
   // **
   TCut customcut;
   TEventList *ditEList=0;
-#ifdef USEPAIRTREE
-  if(fInput->GetConfig().GetCustomCut().first=="pr") {
-    cout << "Getting PairTree Entries satisfying customcut.." << endl;
-    customcut = fInput->GetConfig().GetCustomCut().second;
-    fPairTree->Draw(">>ditEList",customcut);
-#else
+
+  // if(fInput->GetConfig().GetCustomCut().first=="pr") {
+  //   cout << "Getting PairTree Entries satisfying customcut.." << endl;
+  //   customcut = fInput->GetConfig().GetCustomCut().second;
+  //   fPairTree->Draw(">>ditEList",customcut);}
+
   if(fInput->GetConfig().GetCustomCut().first=="evt") {
     cout << "Getting RawTree Entries satisfying customcut.." << endl;
     customcut = fInput->GetConfig().GetCustomCut().second;
     fRawTree->Draw(">>ditEList",customcut);
-#endif
     ditEList = (TEventList*)gDirectory->Get("ditEList");
     if(ditEList) 
       if(ditEList->GetN()!=0){
@@ -434,7 +378,6 @@ Bool_t TaDitAna::LoadModData()
   if (fUseCurMon) {
     TBranch* branch_buff = (TBranch*)fRawTree->GetBranch(CurMon);
     leaf_curmon =  (TLeaf*)branch_buff->GetLeaf("hw_sum");
-    fUseCurMon=kTRUE;
     if (!leaf_curmon) {
       cerr << "Current Monitor " << CurMon << " does not exist in Raw Tree. " 
 	   << "Will not include in analysis." << endl;
@@ -447,52 +390,29 @@ Bool_t TaDitAna::LoadModData()
 
   avgCyc = fProtoCyc->Clone();
 
-
   // **
   // loop through tree to sort data in appropriate holders
   // **
-#ifdef USEPAIRTREE
-  Int_t nentries = (Int_t) fPairTree->GetEntries();
-#else
   Int_t nentries = (Int_t) fRawTree->GetEntries();
-#endif
   Bool_t inCycle = kFALSE;
   Double_t DetData[fgMxNDet];
   Double_t MonData[fgMxNMon];
   Int_t icurCyc = -1;
-#ifdef USEPAIRTREE
-  Double_t last_evNum =-1;
-#else
   Int_t last_evNum =-1;
-#endif
   Bool_t isClean;
   Int_t lastObject;
   Double_t lastValue;
   Int_t lastCycle=-1;
 
   for (Int_t iEv=0; iEv<nentries; iEv++ ) {
-#ifdef USEPAIRTREE
-    fPairTree->GetEntry(iEv);
-#else
     fRawTree->GetEntry(iEv);
-#endif
-
     // **
     // discontinuous event numbers invalidate the clean flag
     // **
-#ifdef USEPAIRTREE
-    //////////////////////////////////////////////////
-    // Need to check this bmwClean average...
-    //////////////////////////////////////////////////
-    // isClean = (((int) EvR_bmwClean) == 1) && (last_evNum-EvR_evNum<=2.0);
-    isClean = (last_evNum-EvR_evNum<=2.0);
-#else
     // isClean = (((int) EvR_bmwClean) == 1) && (EvR_evNum-1==last_evNum);
     isClean = (EvR_evNum-1==last_evNum);
-#endif
     last_evNum=EvR_evNum;
     Int_t evNum = (Int_t) EvR_evNum; // bad rounding, don't care
-
     lastObject = (int) (EvR_bmwObject-1); // JAPAN bmwobj index starts from 1
 
     if (EvR_bmwCycle<=0 && lastObject<0) {  // ** not a step in a cycle
@@ -503,11 +423,6 @@ Bool_t TaDitAna::LoadModData()
 #endif
 	curCyc->SetLastSCEvent(evNum);
 	avgCyc->SetLastSCEvent(evNum);
-// 	cout << "TaDitAna:: ending supercycle " << lastCycle 
-// 	     << " at event " << iEv << endl;
-// #endif
-// 	curCyc->SetLastSCEvent(iEv);
-// 	avgCyc->SetLastSCEvent(iEv);
 	inCycle=kFALSE;
       }
     } else if (EvR_bmwCycle<=0 && lastObject>=0) {  // **  error condition
@@ -535,7 +450,6 @@ Bool_t TaDitAna::LoadModData()
 	fDitCyc.AddLast(curCyc);
 	inCycle=kTRUE;
 	icurCyc = fDitCyc.GetLast();
-	//	curCyc->SetFirstEvent(iEv);
 	curCyc->SetFirstEvent(evNum);
 	cout << " Current DitCyc is number " << icurCyc << " in TObjArray" << endl;
 	lastCycle = (Int_t) EvR_bmwCycle;
@@ -555,9 +469,6 @@ Bool_t TaDitAna::LoadModData()
       if(ditEList) {
 	if(!ditEList->Contains(iEv)) passRawCuts=kFALSE; //customcut failed
       }
-#ifdef USEPAIRTREE
-      if(!leaf_okcut->GetValue()) passRawCuts=kFALSE;
-#endif
       // **
       // if all ok, get data for each detector and monitor into arrays
       // **
@@ -597,13 +508,11 @@ Bool_t TaDitAna::LoadModData()
       } else {
 	// one could use this space to count the number of failures, for the ditcyc
 	((TaDitCyc*) fDitCyc.UncheckedAt(icurCyc))->StepLostEventCounter();	
-	// cout << ((TaDitCyc*) fDitCyc.UncheckedAt(icurCyc))->GetLostEventCounter()
-	//      << "  for DitCyc " << icurCyc << endl;
       }
     }
   }  // end loop over all events in tree
   
-  // bug, now that we use pair tree
+  // bug, now that we use pair tree //// ????? Tao Y.
   //    if (curCyc!=0) curCyc->SetLastEvent(nentries-1); 
   //    avgCyc->SetLastEvent(nentries-1);
   if (curCyc!=0) curCyc->SetLastEvent((Int_t) last_evNum);
@@ -612,7 +521,6 @@ Bool_t TaDitAna::LoadModData()
     curCyc->SetLastSCEvent((Int_t) last_evNum);
     avgCyc->SetLastSCEvent((Int_t) last_evNum);
   }
-  
   fNumCyc = fDitCyc.GetLast() + 1;
   cout << "fNumCyc: " << fNumCyc << endl;
 #ifdef NOISY
@@ -649,11 +557,8 @@ void TaDitAna::Process()
 //   }
 
   ComputeDitCoeffs();
-
-
   OutputResults();
-//   CorrectPairTree();
-
+  // Correct Pattern Tree -- FixMe  But what's the point ? Tao Y.
 }
 
 Bool_t TaDitAna::OutputSlopes() {
@@ -662,16 +567,6 @@ Bool_t TaDitAna::OutputSlopes() {
   char rtag[100];
   TString units;
   TString comment;
-
-#ifdef USEPAIRTREE
-  for(UInt_t i=0; i<DetList.size(); i++) {
-    DetList[i].ReplaceAll("avg_n_","");
-  }
-  for(UInt_t i=0; i<MonList.size(); i++) {
-    MonList[i].ReplaceAll("avg_","");
-  }
-#endif
-  
 
   for (Int_t ic = 0; ic<fNumCyc; ic++) { // for each supercycle
     TaDitCyc *tcyc = (TaDitCyc*) fDitCyc[ic];
@@ -926,7 +821,7 @@ void TaDitAna::PrintCycResults(Int_t icyc = -1) {
 }
 
 
-
+// FIXME Needs adaption to JAPAN MulTree -  Tao Y.
 Bool_t TaDitAna::CorrectPairTree() {
 #ifdef DEBUG
   cout << "TaDitAna::CorrectPairTree()" << endl;
