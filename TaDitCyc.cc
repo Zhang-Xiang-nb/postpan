@@ -38,6 +38,7 @@
 ////////////////////////////////////////////////////////////////////////
 
 // #define NOISY
+// #define DEBUG
 
 #include "TaDitCyc.hh"
 #include "Matrix.hh"
@@ -128,9 +129,9 @@ Bool_t TaDitCyc::Merge(TaDitCyc* mergeCyc) {
  	(fObjCycs[ic].sModVal).push_back((mergeObj.sModVal)[iwin]);
 
  	for (Int_t idet = 0 ; idet<fNDetUsed; idet++) {
-#ifdef EVILERRORMESSAGE
+#ifdef EVILERRORMESSAGE  // Not that evil now
 	  if ((mergeObj.sDetVal[idet])[iwin]<0.1) {
-	    cout << "what a funny! " <<  mergeCyc->GetSuperCycleNumber() 
+	    cout << "What the [x]! " <<  mergeCyc->GetSuperCycleNumber() 
 		 << endl;
 	  }
 #endif
@@ -138,7 +139,7 @@ Bool_t TaDitCyc::Merge(TaDitCyc* mergeCyc) {
 #ifdef EVILERRORMESSAGE
 	  if ((fObjCycs[ic].sDetVal[idet])[fNEvObj[ic]]<0.1) {
 
- 	    cout << "Really what a funny! " 
+ 	    cout << "Really what the [x]! " 
  		 <<  " SC: " << mergeCyc->GetSuperCycleNumber() 
  		 <<  " iwin = " << iwin 
  		 <<  " iEVObj: " << fNEvObj[ic] << endl;
@@ -240,7 +241,7 @@ void TaDitCyc::CalcSlopes()
     for (Int_t iev = 0; iev<fNEvObj[ic]; iev++) xmean += x[iev];
     xmean /= fNEvObj[ic];
 
-    // for each detector
+    // for each detector - dD/dC 
     for (Int_t idet = 0 ; idet<fNDetUsed; idet++) {
       vector<Double_t> y;
       y = fObjCycs[ic].sDetVal[idet];
@@ -276,11 +277,18 @@ void TaDitCyc::CalcSlopes()
       // scale slope by mean detector value to get fractional change
       // fDetDSlp[ic][idet] = b/abs(ymean);
       // fDetDSlpE[ic][idet] = sigb/abs(ymean);
-      fDetDSlp[ic][idet] = (b*1e6)/(2*abs(ymean));
-      fDetDSlpE[ic][idet] = (sigb*1e6)/(2*abs(ymean));
-      // cout << "I fit a detector slope of " << fDetDSlp[ic][idet] << endl;
+      fDetDSlp[ic][idet] = (b*1e6*1e3)/(abs(ymean));
+      fDetDSlpE[ic][idet] = (sigb*1e6*1e3)/(abs(ymean));
+      // 1e6 to convert to ppm
+      // 1e3 to convert to trim card (counts/1000)
+
+#ifdef DEBUG
+      cout << "For Detector " << idet << " and Coil " << ic
+	   << " I fit a detector slope of dD/dC" << fDetDSlp[ic][idet] << endl;
+#endif
+
     }
-    // for each monitor
+    // for each monitor - dB/dC
     for (Int_t imon = 0 ; imon<fNMonUsed; imon++) {
       vector <Double_t> y;
       y = fObjCycs[ic].sMonVal[imon];
@@ -306,15 +314,19 @@ void TaDitCyc::CalcSlopes()
       }
 
       // for each monitor, calculate dB/dC
-      fMonDSlp[ic][imon] = b*1e3;  // 1e3 to convert to micron
-      // for each monitor, calculate error on dB/dC
-      fMonDSlpE[ic][imon] = sigb*1e3;
+      fMonDSlp[ic][imon] = b*1e3*1e3;  
+      // 1e3 to convert to micron
+      // 1e3 to convert to trim card (counts/1000)
+      fMonDSlpE[ic][imon] = sigb*1e3*1e3;
+
       // for each monitor, calculate goodness-of-fit for dB/dC, scale errors?
       // output info if goodness-of-fit is very bad
       // ... or do all that that later ...	
-//       cout << "For Monitor " << imon << " and Coil " << ic <<
-// 	" I fit a monitor slope of " << fMonDSlp[ic][imon] << endl;
 
+#ifdef DEBUG
+      cout << "For Monitor " << imon << " and Coil " << ic <<
+	" I fit a monitor slope of dB/dC " << fMonDSlp[ic][imon] << endl;
+#endif
 
     }
     // check for dominance of dD/dC errors over dB/dC... which is the operating
@@ -340,7 +352,6 @@ void TaDitCyc::CalcCoeffs()
     cout << "Can't calculate Coeffs because slopes aren't calculated!" << endl;
     return;
   }
-
 
   // create matrix A_lj = Sum_i dD_l/dC_i*dB_j/dC_i for each detector D_l
   // create matrix R_kj = Sum_i dB_k/dC_i*dB_j/dC_i 
@@ -423,7 +434,7 @@ void TaDitCyc::CalcCoeffs()
   for (Int_t id = 0; id<fNDetUsed; id++) {
     for (Int_t im = 0; im<fNMonUsed; im++) {
       fDetMonCoef[id][im] = SMat.Get(id,im);
-      fDetMonCoefE[id][im] = -1.0;  // no ideas here yet...
+      fDetMonCoefE[id][im] = -1.0;  // no ideas here yet...// FixMe: Tao Y.
     }
   }
 
@@ -438,20 +449,21 @@ void TaDitCyc::LoadData(Int_t iCoil, Double_t value, Double_t DetVal[],
   // Accepts data on a single helicity window and loads it into 
   // arrays, sorted by modulation object
   if (iCoil==-1) {
-    // no object is currently modulated. Probably data from end of supercycle.
+    cout << "no object is currently modulated. Probably data from end of supercycle."
+	 << endl;
     // Data could be stored for each coil (with value=0), but for right now
     // data is ignored
-    cout << "TaDitCyc::LoadData -- Given Bad Modulation Object Index: "
-	 << iCoil << ",    Max Index = " << fNDitUsed << endl;
+    cout << "ICoil Index: "
+	 << iCoil << endl;
     return;
   } else if (iCoil>=fNDitUsed || iCoil<-1) {
     cout << "TaDitCyc::LoadData -- Given Bad Modulation Object Index: "
 	 << iCoil << ",    Max Index = " << fNDitUsed << endl;
     return;
   }
-//  #ifdef NOISY
-//   cout << "TaDitCyc:: Loading Data, iCoil "<< iCoil << endl;
-//  #endif
+ #ifdef DEBUG
+  cout << "TaDitCyc:: Loading Data, iCoil "<< iCoil << endl;
+ #endif
 
   (fObjCycs[iCoil].sModVal).push_back(value);
   for (Int_t i = 0; i<fNDetUsed; i++) 
