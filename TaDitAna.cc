@@ -737,7 +737,7 @@ Bool_t TaDitAna::FillSlopesTree() {
     firstev = tcyc->GetFirstEvent();
     lastev = tcyc->GetLastEvent();
     lastSCev = tcyc->GetLastSCEvent(); 
-   lostcnt = tcyc->GetLostEventCounter();
+    lostcnt = tcyc->GetLostEventCounter();
 
     //   fill transfer arrays with slopes
     for (Int_t idit = 0; idit<fNDit; idit++) { //  for each coil
@@ -790,8 +790,9 @@ void TaDitAna::PrintCycResults(Int_t icyc = -1) {
     return;
   }
 
-  cout << endl << "  Monitors vs. Coils: " << endl;
+  cout << endl << "  Monitors vs. Coils: [um / (counts/1000)] " << endl;
   for (Int_t imon = 0; imon<fNMon; imon++) { //     for each monitor 
+    cout << "--------------------------------" << endl;
     for (Int_t idit = 0; idit<fNDit; idit++) { //  for each coil
       cout << MonList[imon] << " vs. " << DitList[idit] << " : ";
       cout << pcyc->GetSlopeMonVDit(imon,idit) << "+/-" 
@@ -799,8 +800,9 @@ void TaDitAna::PrintCycResults(Int_t icyc = -1) {
     }
   }
 
-  cout << endl << "  Detectors vs. Coils: " << endl;
+  cout << endl << "  Detectors vs. Coils: [ ppm / (counts/1000)]" << endl;
   for (Int_t idet = 0; idet<fNDet; idet++) { //     for each detitor 
+    cout << "--------------------------------" << endl;
     for (Int_t idit = 0; idit<fNDit; idit++) { //  for each coil
       cout << DetList[idet] << " vs. " << DitList[idit] << " : ";
       cout << pcyc->GetSlopeDetVDit(idet,idit) << "+/-" 
@@ -808,8 +810,9 @@ void TaDitAna::PrintCycResults(Int_t icyc = -1) {
     }
   }
 
-  cout << endl << "  Detectors vs. Monitors: " << endl;
-  for (Int_t idet = 0; idet<fNDet; idet++) { //     for each detitor 
+  cout << endl << "  Detectors vs. Monitors: [ ppm / um ] " << endl;
+  for (Int_t idet = 0; idet<fNDet; idet++) { //     for each detitor
+    cout << "--------------------------------" << endl;
     for (Int_t imon = 0; imon<fNMon; imon++) { //  for each coil
       cout << DetList[idet] << " vs. " << MonList[imon] << " : ";
       cout << pcyc->GetCoeffDetVMon(idet,imon) << "+/-" 
