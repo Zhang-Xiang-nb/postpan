@@ -649,8 +649,10 @@ void TaRegression::ProcessMatrix () {
 #ifdef NOISY
     cout << "  Before Regression" << endl;
     for (UInt_t iDV = 0; iDV<DVnames.size(); iDV++) {
-      cout << "   " << DVnames[iDV] << " mean = " << DVStats->Mean(iDV) 
-	   << " RMS = " <<DVStats->DataRMS(iDV) << endl;
+      cout << "   " << DVnames[iDV]
+	   << " mean = " << 1e6*DVStats->Mean(iDV) << " ppm" 
+	   << " RMS = " <<1e6*DVStats->DataRMS(iDV) << " ppm" 
+	   << endl;
     }
 #endif
 
@@ -704,20 +706,24 @@ void TaRegression::ProcessMatrix () {
 #ifdef NOISY
     cout << "  After Regression" << endl;
     for (UInt_t iDV = 0; iDV<DVnames.size(); iDV++) {
-      cout << "   " <<  DVnames[iDV] << " mean = " << DVStats->Mean(iDV) 
-	   << " RMS = " <<DVStats->DataRMS(iDV) << endl;
+      cout << "   " <<  DVnames[iDV]
+	   << " mean = "<< 1e6*DVStats->Mean(iDV) << " ppm"
+	   << " RMS = "<< 1e6*DVStats->DataRMS(iDV) << " ppm" 
+	   << endl;
     }
-    cout << "\tSlopes:\n";
+    cout << "--Slopes:\n";
     for(UInt_t iDV = 0; iDV<DVnames.size(); iDV++) {
+      cout << "----------------------------------------------" << endl;
       for(UInt_t iIV=0; iIV<IVnames.size(); iIV++) {
-	cout << "\t\t" << DVnames[iDV] << " vs. ";
-	cout << IVnames[iIV] << " = " 
-	     << mini_coeff[iDV][iIV]
+	cout <<  DVnames[iDV] << " vs. ";
+	cout << IVnames[iIV] << " : " 
+	     << 1e3*mini_coeff[iDV][iIV]
 	     << " +/- " 
-	     << mini_Errcoeff[iDV][iIV]
+	     << 1e3*mini_Errcoeff[iDV][iIV]
 	     << endl;
       }
     }
+    cout << "\n----------------- END OF Summary--------------------" << endl;
 #endif
     WriteStats(imini,kTRUE);
     WriteSlopes(imini);
