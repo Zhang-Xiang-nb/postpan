@@ -211,9 +211,12 @@ Int_t TaDitAna::Init (TaInput& input)
   // finish prototyping the DitCyc in LoadModData, after
   // lists have been trimmed by availability in the tree  
 
-  LoadModData(); // load data from raw tree
-
-  return 0;
+  Bool_t isDataAvailable = LoadModData(); // load data from raw tree
+  
+  if(isDataAvailable)
+    return 0;
+  else
+    return 1;
 }
 
 
@@ -326,6 +329,9 @@ Bool_t TaDitAna::LoadModData()
   // **
   // Get the CUT leafs and check if they exist in the Tree
   // **
+
+  RwPanCuts = fInput->GetConfig().GetRawCuts();
+
   for(UInt_t i=0; i<RwPanCuts.size(); i++) {
     leaf_cut.push_back((TLeaf*)fRawTree->GetLeaf(RwPanCuts[i]));
   }
@@ -361,14 +367,17 @@ Bool_t TaDitAna::LoadModData()
     customcut = fInput->GetConfig().GetCustomCut().second;
     fRawTree->Draw(">>ditEList",customcut);
     ditEList = (TEventList*)gDirectory->Get("ditEList");
-    if(ditEList) 
+    if(ditEList){ 
       if(ditEList->GetN()!=0){
 	cout << "\tObtained " << ditEList->GetN()
 	     << " entries satisfying customcut." << endl;
       } else {
 	ditEList = 0;
 	cout << "\tNo entries obtained for customcut." << endl;
+	cout << "\tAnalysis Aborted." << endl;
+	return kFALSE;
       }
+    }
   }
 
   // **
@@ -462,10 +471,11 @@ Bool_t TaDitAna::LoadModData()
       // **
       // check any cuts, as required  (raw tree cuts are all true if cut failed)
       // **
-      Bool_t passRawCuts = kTRUE;
+      Bool_t passRawCuts = kFALSE;
       for (Int_t icut = 0; icut<fNRwCuts; icut++) 
-	// the following condition only works for JAPAN ErrorFlag convention - Tao Y.
-	if ((leaf_cut[icut]->GetValue())!=0 ) passRawCuts=kFALSE;  // cut failed  
+	if ((leaf_cut[icut]->GetValue())==0 )  // only works for JAPAN ErrorFlag convention - Tao Y.
+	  passRawCuts=kTRUE; 
+
       if(ditEList) {
 	if(!ditEList->Contains(iEv)) passRawCuts=kFALSE; //customcut failed
       }
@@ -496,12 +506,13 @@ Bool_t TaDitAna::LoadModData()
 	      avgCyc->LoadData(icoil, lastValue,
 			       &(DetData[0]),&(MonData[0]));
 	    } else {
-	      // debugging message
+#ifdef DEBUG
 	      cout << "Discarded this data because of dit limit: "
 		   << DitList[icoil] 
 		   << Form(" at %.1f > limit of %.1f",
 			   lastValue*1e5,DitLimit[lastObject])
 		   << endl;
+#endif	      
 	    }
 	  }
 	}

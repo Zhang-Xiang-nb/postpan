@@ -22,13 +22,15 @@ ClassImp(TaRedAna);
 TaRedAna::TaRedAna():
   fAnalysis(0),
   fConfig(0),
-  fInput(0)
+  fInput(0),
+  kStatus(1)
 {}
 
 TaRedAna::TaRedAna(TString usrConfFileName):
   fAnalysis(0),
   fConfig(0),
-  fInput(0)
+  fInput(0),
+  kStatus(1)
 {
   fConfFileName = usrConfFileName;
 }
@@ -75,12 +77,11 @@ Int_t TaRedAna::CommonInit ()
 
   if(theAnaType == "regress") {
     fAnalysis = new TaRegression;
-    fAnalysis->Init(*fInput);
+    kStatus=fAnalysis->Init(*fInput);
 
   } else if(theAnaType == "dither") {
-
     fAnalysis = new TaDitAna();
-    fAnalysis->Init(*fInput);
+    kStatus=fAnalysis->Init(*fInput);
 
   } else {
     cout << "TaRedAna::Init() ERROR: " << theAnaType << "not recognized."
@@ -96,7 +97,8 @@ void TaRedAna::Process ()
 #ifdef DEBUG
   cout << "TaRedAna::Process()" << endl;
 #endif
-  fAnalysis->Process();
+  if(!kStatus)
+    fAnalysis->Process();
 }
 
 void TaRedAna::End ()
@@ -104,7 +106,10 @@ void TaRedAna::End ()
 #ifdef DEBUG
   cout << "TaRedAna::End()" << endl;
 #endif
-  fAnalysis->End();
+  if(!kStatus)
+    fAnalysis->End();
+  else
+    cout << "TaRedAna Aborted. " << endl;
   //  delete fPanFile;
   //  delete fConfig;
   delete fAnalysis;

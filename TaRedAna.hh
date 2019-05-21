@@ -46,6 +46,7 @@ private:
   TaConfFile* fConfig;
   TaInput*    fInput;
   TString     fConfFileName;
+  Int_t kStatus;
 };
 
 #endif
