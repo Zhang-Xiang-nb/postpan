@@ -131,7 +131,7 @@ Bool_t TaDitCyc::Merge(TaDitCyc* mergeCyc) {
  	for (Int_t idet = 0 ; idet<fNDetUsed; idet++) {
 #ifdef EVILERRORMESSAGE  // Not that evil now
 	  if ((mergeObj.sDetVal[idet])[iwin]<0.1) {
-	    cout << "What the [x]! " <<  mergeCyc->GetSuperCycleNumber() 
+	    cout << "-- Warning: " <<  mergeCyc->GetSuperCycleNumber() 
 		 << endl;
 	  }
 #endif
@@ -139,7 +139,7 @@ Bool_t TaDitCyc::Merge(TaDitCyc* mergeCyc) {
 #ifdef EVILERRORMESSAGE
 	  if ((fObjCycs[ic].sDetVal[idet])[fNEvObj[ic]]<0.1) {
 
- 	    cout << "Really what the [x]! " 
+ 	    cout << "-- Warning:  " 
  		 <<  " SC: " << mergeCyc->GetSuperCycleNumber() 
  		 <<  " iwin = " << iwin 
  		 <<  " iEVObj: " << fNEvObj[ic] << endl;
@@ -321,7 +321,7 @@ void TaDitCyc::CalcSlopes()
 
       // for each monitor, calculate goodness-of-fit for dB/dC, scale errors?
       // output info if goodness-of-fit is very bad
-      // ... or do all that that later ...	
+      // ... or do all that that later ... 
 
 #ifdef DEBUG
       cout << "For Monitor " << imon << " and Coil " << ic <<
@@ -429,14 +429,37 @@ void TaDitCyc::CalcCoeffs()
   // Also store covariance matrix for S, V= R^(-1)  for each detector. 
   //    This is your error estimate!
 
-
   // Store Coefficients
   for (Int_t id = 0; id<fNDetUsed; id++) {
     for (Int_t im = 0; im<fNMonUsed; im++) {
       fDetMonCoef[id][im] = SMat.Get(id,im);
-      fDetMonCoefE[id][im] = -1.0;  // no ideas here yet...// FixMe: Tao Y.
     }
   }
+  // Goodness of Fit 
+  Double_t goodness[fNDetUsed];
+  for (Int_t id = 0; id<fNDetUsed; id++) {
+    goodness[id] = 0;
+    for (Int_t ic = 0; ic<fNDitUsed; ic++) {
+      Double_t buff = fDetDSlp[ic][id] ;
+      for (Int_t im = 0; im<fNMonUsed; im++) {
+	buff -= fDetMonCoef[id][im]*fMonDSlp[ic][im];
+      } 
+      buff = buff*buff;
+      goodness[id]+=buff;
+    }
+    goodness[id] = goodness[id] / (fNDitUsed-fNMonUsed);
+  }
+
+  for (Int_t id = 0; id<fNDetUsed; id++) {
+    for (Int_t im = 0; im<fNMonUsed; im++) {
+      fDetMonCoefE[id][im] = RMatInv.Get(im,im)*goodness[id]; // Estimating Error from Goodness of Fit - Tao.Y
+      if(fDetMonCoefE[id][im]>0)
+	fDetMonCoefE[id][im] = sqrt(fDetMonCoefE[id][im]);
+      else
+	fDetMonCoefE[id][im] = -1.0;
+    }
+  }
+
 
   fCoeffs_Done=kTRUE;
 
