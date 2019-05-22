@@ -246,7 +246,7 @@ TaConfFile::LoadCksum (const string filename)
   system (ckscmd.c_str());
 
   ifstream ifile (tfilename.c_str());
-  if (ifile != 0)
+  if (!(ifile.fail()))
     ifile >> fCksum;
 }
 
