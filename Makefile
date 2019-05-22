@@ -9,8 +9,9 @@
 # 
 
 # Choose the compiler.
-GCC=g++
-GLD=g++
+GCC=$(shell root-config --cxx)
+GLD=$(shell root-config --cc)
+
 ifdef INSURE
   GCC=insure
   GLD=insure
@@ -18,29 +19,26 @@ endif
 
 ROOTLIBS      = $(shell root-config --libs)
 ROOTGLIBS     = $(shell root-config --glibs)
-INCLUDES      = -I$(ROOTSYS)/include
+INCLUDES      = -I$(shell root-config --incdir)
 CXX           = $(GCC)
-CXXFLAGS      = -Wall -fno-exceptions -fPIC $(INCLUDES) -fpermissive
+CXXFLAGS      = -Wall -fno-exceptions -fPIC -fpermissive
+CXXFLAGS      += $(shell root-config --cflags)
 LD            = $(GLD)
 LDFLAGS       = 
 SOFLAGS       = -shared 
-GLIBS         = $(ROOTGLIBS) -L/usr/X11R6/lib -lXpm -lX11
-LIBS          = $(GLIBS) $(ROOTLIBS) $(ROOTGLIBS)
-
+GLIBS         = $(ROOTGLIBS) -lstdc++
 MAKEDEPEND    = $(GCC)
 
-ALL_LIBS = $(LIBS)
+ALL_LIBS = $(GLIBS)
 
 
 ifdef PROFILE
    CXXFLAGS += -pg
 endif
 
-ifdef OPTIMIZE
-   CXXFLAGS += -O
-else
+   CXXFLAGS += -O2
    CXXFLAGS += -g
-endif
+
 
 # Grow the list of sources and pan objects here.
 
@@ -58,9 +56,9 @@ HEAD = $(SRC:.cc=.hh)
 
 PROGS = redana
 
-install: all
-	 mv $(PROGS) ../
-	 mv libRedAna.so ../
+# install: all
+# 	 mv $(PROGS) ../
+# 	 mv libRedAna.so ../
 
 all: $(PROGS) libRedAna.so
 
@@ -75,7 +73,7 @@ main.o: main.cc
 
 libRedAna.so: $(OBJS) $(HEAD)
 	@echo "Generating" $@
-	$(CXX) $(SOFLAGS) -O -o libRedAna.so $(OBJS) $(ALL_LIBS)
+	$(CXX) $(SOFLAGS) -O2 -o libRedAna.so $(OBJS) $(ALL_LIBS)
 
 # Dictionary
 RedDict.cc: $(DOBJS) RedLinkDef.hh
