@@ -13,7 +13,7 @@
 #include "TObject.h"
 #include <vector>
 
-#define MAXCOIL 7
+//#define MAXCOIL 7
 
 using namespace std;
 
