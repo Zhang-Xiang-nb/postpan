@@ -56,9 +56,6 @@ HEAD = $(SRC:.cc=.hh)
 
 PROGS = redana
 
-# install: all
-# 	 mv $(PROGS) ../
-# 	 mv libRedAna.so ../
 
 all: $(PROGS) libRedAna.so
 
@@ -85,6 +82,10 @@ clean:
 
 realclean:  clean
 	rm -f *.d ../$(PROGS) ../libRedAna.so
+
+install: all
+	 mv $(PROGS) ../
+	 mv libRedAna.so ../
 
 .SUFFIXES:
 .SUFFIXES: .c .cc .cpp .C .o .d
