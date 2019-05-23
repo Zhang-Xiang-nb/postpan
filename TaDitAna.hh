@@ -140,8 +140,7 @@ class TaDitAna : public VaAna{
   TaDitCyc* fProtoCyc; // prototype supercycle object
   TObjArray fDitCyc;   // array of TaDitCyc, one for each supercycle
   TaDitCyc* avgCyc;    // grand average TaDitCyc, merged from all others
-
-
+  TaDitCyc* avgCyc_sens;    // TaDitCyc accumulate sensitivities from each cycle
   // Vectors for Monitor, Detector, and coil names
   vector <TString> DetList;  // Det Names.
   vector <TString> MonList;  // Mon Names.

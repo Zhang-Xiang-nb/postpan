@@ -37,8 +37,9 @@
 //
 ////////////////////////////////////////////////////////////////////////
 
-// #define NOISY
-// #define DEBUG
+//#define NOISY
+//#define DEBUG
+//#define SENSE
 
 #include "TaDitCyc.hh"
 #include "Matrix.hh"
@@ -94,13 +95,15 @@ Bool_t TaDitCyc::IsCompatible(TaDitCyc* compCyc) {
   //          (this is tough, cause TaDitCyc doesn't have these yet!)
   //**
   // check event ranges are contiguous
+
   if ( (abs(GetFirstEvent()-compCyc->GetLastEvent())>2) 
     && (abs(GetLastEvent()-compCyc->GetFirstEvent())>2) ) return kFALSE;
+
   //**
   return kTRUE;
 }
 
-Bool_t TaDitCyc::Merge(TaDitCyc* mergeCyc) {
+Bool_t TaDitCyc::MergeData(TaDitCyc* mergeCyc) {
   // merges two TaDitCycs into one.  Useful when a cyc lacks data
   // for a good fit or necessary precision: TaDitAna can combine
   // sequential supercycles worth of data...
@@ -156,8 +159,6 @@ Bool_t TaDitCyc::Merge(TaDitCyc* mergeCyc) {
 	    << " for a total of " << fNEvObj[ic]+nWinAdd << " windows " << endl;
     }
 
-
-
     // unset any calculation_completed flags
     fSlps_Done=kFALSE; fCoeffs_Done=kFALSE;
   } else {
@@ -185,6 +186,95 @@ TaDitCyc* TaDitCyc::Clone() {
   return newguy;
 }
 
+void TaDitCyc::ClearSensitivities(){
+
+  for(Int_t ic=0;ic<fNDitUsed;ic++){
+    for(Int_t idet =0; idet<fNDetUsed;idet++){
+      fDetDSlp[ic][idet] = 0.0;
+      fDetDSlpE[ic][idet] = 0.0;
+      fDetDSlpStatus[ic][idet]=kFALSE;
+    }
+    for(Int_t imon =0; imon<fNMonUsed;imon++){
+      fMonDSlp[ic][imon] = 0.0;
+      fMonDSlpE[ic][imon] = 0.0;
+      fMonDSlpStatus[ic][imon]= kFALSE;
+    }
+  }
+  fSlps_Done = kFALSE;
+}
+
+void TaDitCyc::UpdateSensitivities(TaDitCyc* mergeCyc){
+  // For now just simply average them
+  // FIXME: weight average with proper weights
+  fSlps_Done = kTRUE;
+  
+  for(Int_t ic=0;ic<fNDitUsed;ic++){
+    for(Int_t idet =0; idet<fNDetUsed;idet++){
+      fDetDSlpStatus[ic][idet] |= (mergeCyc->StatusSlopeDetVDit(idet,ic));
+      if(fDetDSlpStatus[ic][idet]==kFALSE){
+	fSlps_Done = kFALSE;
+	continue;
+      }
+      if(mergeCyc->StatusSlopeDetVDit(idet,ic)){
+	if(fDetDSlpE[ic][idet]==0){
+	  fDetDSlp[ic][idet] = mergeCyc->GetSlopeDetVDit(idet,ic);
+	  fDetDSlpE[ic][idet] = mergeCyc->GetErrSlopeDetVDit(idet,ic);;
+	}
+	else{
+	  Double_t weight_cur = 1.0/ pow(fDetDSlpE[ic][idet],2);
+	  Double_t DetDSlpE_merge = mergeCyc->GetErrSlopeDetVDit(idet,ic);
+	  Double_t weight_merge = 1.0/ pow(DetDSlpE_merge,2);
+	  
+	  Double_t ratio_cur = weight_cur/(weight_cur+weight_merge);
+	  Double_t ratio_merge = weight_merge/(weight_cur+weight_merge);
+#ifdef SENSE
+	  cout << "idet= " << idet << endl;
+	  cout << "ic = " << idet << endl;
+	  cout << "current sensitivity = " << fDetDSlp[ic][idet]<< endl;
+#endif
+
+	  fDetDSlp[ic][idet] = ratio_cur*fDetDSlp[ic][idet];
+	  fDetDSlp[ic][idet] += ratio_merge*(mergeCyc->GetSlopeDetVDit(idet,ic));
+#ifdef SENSE
+	  cout << "updated sensitivity = " << fDetDSlp[ic][idet]<< endl;
+#endif
+	  fDetDSlpE[ic][idet] = pow(ratio_cur*fDetDSlpE[ic][idet],2);
+	  fDetDSlpE[ic][idet] += pow(ratio_merge*DetDSlpE_merge,2);
+	  fDetDSlpE[ic][idet] = sqrt(fDetDSlpE[ic][idet]);
+	}
+      } // end of if dD/dC is valid
+    }// end of detector loop
+
+    for(Int_t imon =0; imon<fNMonUsed;imon++){
+      fMonDSlpStatus[ic][imon] |= (mergeCyc->StatusSlopeMonVDit(imon,ic));
+      if(fMonDSlpStatus[ic][imon]==kFALSE){
+	fSlps_Done = kFALSE;
+	continue;
+      }
+      if(mergeCyc->StatusSlopeMonVDit(imon,ic)){
+	if(fMonDSlpE[ic][imon]==0){
+	  fMonDSlp[ic][imon] = mergeCyc->GetSlopeMonVDit(imon,ic);
+	  fMonDSlpE[ic][imon]= mergeCyc->GetErrSlopeMonVDit(imon,ic);
+	}
+	else{
+	  Double_t weight_cur =  1.0/pow(fMonDSlpE[ic][imon],2);
+	  Double_t MonDSlpE_merge = mergeCyc->GetErrSlopeMonVDit(imon,ic);
+	  Double_t weight_merge = 1.0/pow(MonDSlpE_merge,2);
+
+	  Double_t ratio_cur = weight_cur/(weight_cur+weight_merge);
+	  Double_t ratio_merge = weight_merge/(weight_cur+weight_merge);
+	  
+	  fMonDSlp[ic][imon] = ratio_cur*fMonDSlp[ic][imon];
+	  fMonDSlp[ic][imon] += ratio_merge*(mergeCyc->GetSlopeMonVDit(imon,ic));
+	  
+	  fMonDSlpE[ic][imon] = pow(ratio_cur*fMonDSlpE[ic][imon],2);
+	  fMonDSlpE[ic][imon] += pow(ratio_merge*MonDSlpE_merge,2);
+	  fMonDSlpE[ic][imon] = sqrt(fMonDSlpE[ic][imon]);
+	}
+      } // end of if dB/dC is valid 
+    }// end of monitor loop
+  }// end of coil loop
+}
 
 TaDitCyc* TaDitCyc::Copy() {
   // returns a new TaDitCyc, complete with memory allocations and the
@@ -222,6 +312,13 @@ void TaDitCyc::CalcSlopes()
 {
   fSlps_Done=kFALSE;
 
+  for (Int_t ic=0; ic<fNDitUsed; ic++) {
+    for (Int_t idet = 0 ; idet<fNDetUsed; idet++) 
+      fDetDSlpStatus[ic][idet] = kFALSE;
+    for (Int_t imon = 0 ; imon<fNMonUsed; imon++) 
+      fMonDSlpStatus[ic][imon] = kFALSE;
+  }
+
   // calculate slopes for detector and monitors vs. Coils, 
   // along with errors and goodness-of-fit
   for (Int_t ic=0; ic<fNDitUsed; ic++) {
@@ -231,15 +328,34 @@ void TaDitCyc::CalcSlopes()
     if (fNEvObj[ic]<15) {
       cout << "Can't Calculate Slopes, Cycle Underpopulated for item: " << ic
 	   << " in cycle " << fSuperCycNum << endl;
-      return;
+      continue;
     }
     vector <Double_t> x;
     x = fObjCycs[ic].sModVal;
 
-    // calculate x-mean
+    // calculate x-mean (x:  trim card/coil)
     Double_t xmean=0;
     for (Int_t iev = 0; iev<fNEvObj[ic]; iev++) xmean += x[iev];
     xmean /= fNEvObj[ic];
+
+    // calculate x-rms,
+    // if rms is too small, coil is identified as in-active
+    Double_t xrms=0.0;
+    for (Int_t iev=0;iev<fNEvObj[ic];iev++)
+      xrms += (x[iev]-xmean)*(x[iev]-xmean);
+    xrms /= fNEvObj[ic];
+    xrms = sqrt(xrms);
+
+    if(xrms<1.0){
+#ifdef NOISY
+      cout << "Can't Calculate sensitivity to " 
+	   <<" coil ID =  " << ic
+	   <<" is not active "
+	   <<" trimcard value RMS =  " << xrms
+	   <<endl;
+#endif
+      continue;
+    }
 
     // for each detector - dD/dC 
     for (Int_t idet = 0 ; idet<fNDetUsed; idet++) {
@@ -258,7 +374,10 @@ void TaDitCyc::CalcSlopes()
       }
       b = Sxy/Sxx;
       sigb = (Syy - Sxy*Sxy/Sxx)/(Sxx*(fNEvObj[ic]-2));
-      if (sigb>0) sigb = sqrt(sigb);
+      if (sigb>0) {
+	sigb = sqrt(sigb);
+	fDetDSlpStatus[ic][idet]=kTRUE;
+      }
       else {
 	cout << "Error in calculating slope for Detector " << idet 
 	     << " in cycle " << fSuperCycNum << endl;
@@ -271,9 +390,8 @@ void TaDitCyc::CalcSlopes()
 	cout << "      b = " << b << endl;
 	cout << "      sigb = " << sigb << endl;
 	sigb = 1.E6;
-	fSlps_Done=kFALSE;
-	return;	
-    }
+	// fSlps_Done=kFALSE;
+      }
       // scale slope by mean detector value to get fractional change
       // fDetDSlp[ic][idet] = b/abs(ymean);
       // fDetDSlpE[ic][idet] = sigb/abs(ymean);
@@ -304,13 +422,15 @@ void TaDitCyc::CalcSlopes()
       }
       b = Sxy/Sxx;
       sigb = (Syy - Sxy*Sxy/Sxx)/(Sxx*(fNEvObj[ic]-2));
-      if (sigb>0) sigb = sqrt(sigb);
+      if (sigb>0) {
+	sigb = sqrt(sigb);
+	fMonDSlpStatus[ic][imon]=kTRUE;
+      }
       else {
       	sigb = 1.E6;
       	cout << "Error in calculating slope for Monitor " << imon 
       	     << " in cycle " << fSuperCycNum << endl;
-      	fSlps_Done=kFALSE;
-      	return;
+      	// fSlps_Done=kFALSE;
       }
 
       // for each monitor, calculate dB/dC
@@ -339,7 +459,7 @@ void TaDitCyc::CalcSlopes()
     
     // set some flag to verify good calculation of slopes.  
     // It'd be reasonable to do that here...    
-  }    
+  }// end of coil loop    
 
   fSlps_Done=kTRUE;
 }
@@ -447,7 +567,9 @@ void TaDitCyc::CalcCoeffs()
       buff = buff*buff;
       goodness[id]+=buff;
     }
-    goodness[id] = goodness[id] / (fNDitUsed-fNMonUsed);
+    if(fNDitUsed-fNMonUsed>0)
+      goodness[id] = goodness[id] / (fNDitUsed-fNMonUsed);
+    
   }
 
   for (Int_t id = 0; id<fNDetUsed; id++) {

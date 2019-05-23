@@ -49,9 +49,15 @@ public:
   // Major methods
   TaDitCyc* Clone(); // returns a new TaDitCyc, with empty data but the same 
                      // coils used
-  Bool_t Merge(TaDitCyc* mergeCyc); // merges argument TaDitCyc with current 
-                                    // TaDitCyc, returns false if DitCycs are 
-                                    // incompatible
+  Bool_t MergeData(TaDitCyc* mergeCyc); 
+  // merges data points from mergeCyc with current 
+  // TaDitCyc, returns false if DitCycs are 
+  // incompatible
+
+  void ClearSensitivities(); 
+  void UpdateSensitivities(TaDitCyc* mergeCyc); 
+  // Average sensitivities from mergeCyc with current 
+  // TaDitCyc and update fSlps_Done 
 
   TaDitCyc* Copy(); // returns full copy of this cycle
 
@@ -95,6 +101,11 @@ public:
     return fDetDSlpE[imodobj][idet];;
   }
 
+  Bool_t StatusSlopeDetVDit(Int_t idet, Int_t imodobj) {
+    if (imodobj>=fNDitUsed || idet>=fNDetUsed) return -1.E9;
+    return fDetDSlpStatus[imodobj][idet];;
+  }
+
   Double_t GetSlopeMonVDit(Int_t imon, Int_t imodobj) {
     if (imodobj>=fNDitUsed || imon>=fNMonUsed) return -1.E9;
     return fMonDSlp[imodobj][imon];
@@ -103,6 +114,11 @@ public:
   Double_t GetErrSlopeMonVDit(Int_t imon, Int_t imodobj) {
     if (imodobj>=fNDitUsed || imon>=fNMonUsed) return -1.E9;
     return fMonDSlpE[imodobj][imon];;
+  }
+
+  Bool_t StatusSlopeMonVDit(Int_t imon, Int_t imodobj) {
+    if (imodobj>=fNDitUsed || imon>=fNMonUsed) return -1.E9;
+    return fMonDSlpStatus[imodobj][imon];;
   }
 
   Double_t GetCoeffDetVMon(Int_t idet, Int_t imon) {
@@ -194,9 +210,11 @@ public:
   // slopes det/dit, indexed by UDO
   Double_t fDetDSlp[fgMaxModObj][fgMaxDet];
   Double_t fDetDSlpE[fgMaxModObj][fgMaxDet];
+  Bool_t fDetDSlpStatus[fgMaxModObj][fgMaxDet];
   // slopes mon/dit, indexed by UDO
   Double_t fMonDSlp[fgMaxModObj][fgMaxMon];
   Double_t fMonDSlpE[fgMaxModObj][fgMaxMon];
+  Bool_t fMonDSlpStatus[fgMaxModObj][fgMaxMon];
 
   Double_t fDetMonCoef[fgMaxDet][fgMaxMon];
   Double_t fDetMonCoefE[fgMaxDet][fgMaxMon];

@@ -103,7 +103,7 @@ Int_t TaDitAna::Init (TaInput& input)
   Int_t nentries = (Int_t) fRawTree->GetEntries();
   cout << "Number of Entries = " << nentries << endl;
 
-  // A new Cycle Counter - Tao Y.
+  // A new Cycle Counter, Not really useful now - Tao Y. 
   Int_t max_count = 100;
   TH1D *hCycCounter = new TH1D("hCycCounter","",max_count,-0.5,max_count-0.5);
   fRawTree->Draw("bmwcycnum>>hCycCounter","bmwcycnum>=0","goff");
@@ -139,7 +139,7 @@ Int_t TaDitAna::Init (TaInput& input)
     // else if (ditname.Contains("SL20",TString::kIgnoreCase)) ditindex = 7;
     
     // Following dither name for Spring19 run 1473-1474 modulation test 
-    // At some point, we may need to switch back to above naming. - Tao Y.
+    // At some point, we may need to switch back to above naming (?). - Tao Y.
 
     if (ditname.Contains("trim1",TString::kIgnoreCase)) ditindex = 0;
     else if (ditname.Contains("trim2",TString::kIgnoreCase)) ditindex = 1;
@@ -522,8 +522,7 @@ Bool_t TaDitAna::LoadModData()
       }
     }
   }  // end loop over all events in tree
-  
-  // bug, now that we use pair tree //// ????? Tao Y.
+
   //    if (curCyc!=0) curCyc->SetLastEvent(nentries-1); 
   //    avgCyc->SetLastEvent(nentries-1);
   if (curCyc!=0) curCyc->SetLastEvent((Int_t) last_evNum);
@@ -544,18 +543,30 @@ Bool_t TaDitAna::LoadModData()
 
 void TaDitAna::ComputeDitCoeffs() 
 {  
-  for (Int_t ic = 0; ic<fNumCyc; ic++) {
-    ((TaDitCyc*) fDitCyc[ic])->CalcSlopes();
+
+  // Tao Y. May 23rd :
+  // Some idea : 
+  //   1. At the stage of sensitivity calculation, we need to cut off events when a coil is not active. This should be simple, just a cut on trim card RMS
+  //   2. We can calculate sensitivies within each cycle then merge sensitivies weighted by error then compute slopes from that merged cycles. This will help to get rid of 'local-zero' shifts between cycles.
+  //   3. Also, if any coil is not activated all the time, it needs to be moved out of coil array.
+  //   4. We will need to compute mean of detectors in each cycle .
+  //   5. If instead, we want to merge data from each cycles, then "local-zero" needs to be known	      
+  //     *. Also, we may want to rename function names with proper 'slopes' 'sensitivities'		      
+  avgCyc_sens = fProtoCyc->Clone();
+  avgCyc_sens->ClearSensitivities();
+  for (Int_t icyc = 0; icyc<fNumCyc; icyc++) {
+    ((TaDitCyc*) fDitCyc[icyc])->CalcSlopes();
+    avgCyc_sens->UpdateSensitivities((TaDitCyc*) fDitCyc[icyc]);
     // should check returned flag, and do something smart if failure!
   }
-  for (Int_t ic = 0; ic<fNumCyc; ic++) {
-    ((TaDitCyc*) fDitCyc[ic])->CalcCoeffs();
-    // should check returned flag, and do something smart if failure!
-  }
+  // for (Int_t ic = 0; ic<fNumCyc; ic++) {
+  //   ((TaDitCyc*) fDitCyc[ic])->CalcCoeffs();
+  //   // should check returned flag, and do something smart if failure!
+  // }
 
   avgCyc->CalcSlopes();
   avgCyc->CalcCoeffs();
-
+  avgCyc_sens->CalcCoeffs();
 }
 
 void TaDitAna::Process() 
@@ -568,7 +579,9 @@ void TaDitAna::Process()
 //   }
 
   ComputeDitCoeffs();
-  OutputResults();
+  PrintCycResults(-1);
+  PrintCycResults(0);
+  // OutputResults();
   // Correct Pattern Tree -- FixMe  But what's the point ? Tao Y.
 }
 
@@ -777,7 +790,7 @@ Bool_t TaDitAna::FillSlopesTree() {
   
   // print out right now for debugging purposes
   PrintCycResults(-1);
-
+  PrintCycResults(0);
   return kTRUE;
 }
 
@@ -794,7 +807,11 @@ void TaDitAna::PrintCycResults(Int_t icyc = -1) {
   if (icyc==-1) {
     pcyc = avgCyc;
     cout << " Print Grand Average Cycle results: " << endl;
-  } else if (icyc<fNumCyc) {
+  } 
+  else if(icyc==0){
+    pcyc = avgCyc_sens;
+    cout << " Print Sensitivities Averaged Cycle from results: " << endl;
+  }else if (icyc<fNumCyc) {
     pcyc = (TaDitCyc*) fDitCyc[icyc];
   } else {
     cout << "nonesuch cycle to print" << endl;
