@@ -86,7 +86,7 @@ realclean:  clean
 install: all
 	 mv $(PROGS) ../
 	 mv libRedAna.so ../
-
+	 mv RedDict_rdict.pcm ../	
 .SUFFIXES:
 .SUFFIXES: .c .cc .cpp .C .o .d
 
@@ -95,7 +95,7 @@ install: all
 
 %.d:	%.cc
 	@echo Creating dependencies for $<
-	@$(SHELL) -ec '$(MAKEDEPEND) -MM $(INCLUDES) -c $< \
+	@$(SHELL) -ec '$(MAKEDEPEND) -std=c++11 -MM $(INCLUDES) -c $< \
 	      | sed '\''s%^.*\.o%$*\.o%g'\'' \
 	      | sed '\''s%\($*\)\.o[ :]*%\1.o $@ : %g'\'' > $@; \
 	      [ -s $@ ] || rm -f $@'
