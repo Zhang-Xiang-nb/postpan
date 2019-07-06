@@ -117,6 +117,13 @@ Int_t TaInput::CommonInit() {
   //It should be named as 'mul' or 'pr' if it is input from JAPAN
   TString treeName = fConfig->GetTreeName();
   fPairTree = (TTree*)fPanFile->Get(treeName);
+
+  if(treeName=="mul"){
+    cout << "-- mul tree is in use " << endl;
+    cout << "-- Adding mulc as friend Tree " << endl;
+    TTree *mulc_tree = (TTree*)fPanFile->Get("mulc");
+    fPairTree->AddFriend(mulc_tree);
+  }
 #ifdef NOISY
   fRawTree->Print();
   fPairTree->Print();
