@@ -1,10 +1,11 @@
-void GetBeamNoise(Int_t run_num){
+void GetBeamNoise(Int_t run_num, TString name_stem="prexTest"){
 
-  TString output_filename = Form("./pseudo_run%d_postpan_summary.txt",run_num);
+  TString output_filename = Form("./%s_run%d_postpan_summary.txt",
+				 name_stem.Data(),run_num);
   FILE *summary_txt = fopen(output_filename.Data(), "w");
 
-  // TFile* rootfile = TFile::Open(Form("./japanOutput/prexRespin1_%d_regress_postpan.root",run_num));
-  TFile* rootfile = TFile::Open(Form("./japanOutput/pseudo_%d_postpan.root",run_num));
+  TFile* rootfile = TFile::Open(Form("./results/%s_%d_regress_postpan.root",
+				     name_stem.Data(),run_num));
   TTree *reg = (TTree*)rootfile ->Get("reg");
   TTree *regcoeffs = (TTree*)rootfile ->Get("regcoeffs");
   
@@ -19,10 +20,10 @@ void GetBeamNoise(Int_t run_num){
   TString DVname[] = { 
     "asym_sam1","asym_sam2","asym_sam3","asym_sam4",
     "asym_sam5","asym_sam6","asym_sam8",
-    "asym_usl","asym_usr","asym_dsl","asym_dsr"};
-    // "asym_us_avg","asym_us_dd", "asym_ds_avg","asym_ds_dd",
-    // "asym_left_avg","asym_left_dd","asym_right_avg","asym_right_dd",
-    // "asym_sam_15_avg","asym_sam_15_dd"};
+    "asym_usl","asym_usr","asym_dsl","asym_dsr",
+    "asym_us_avg","asym_us_dd", "asym_ds_avg","asym_ds_dd",
+    "asym_left_avg","asym_left_dd","asym_right_avg","asym_right_dd",
+    "asym_sam_15_avg","asym_sam_15_dd"};
     
 
   Int_t nIV = sizeof(IVname)/sizeof(*IVname);
