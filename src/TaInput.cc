@@ -88,6 +88,11 @@ Int_t TaInput::Init(string runfile_str) {
   TString run_num = runfile(first_t,length_t);
   fRunNumber = atoi(run_num);
 
+  first_t = runfile.Last('/')+1;
+  last_t = runfile.First('_');
+  length_t = last_t - first_t+1;
+  fNameStem = runfile(first_t,length_t);
+
   TaFileName::Setup (fRunNumber, "");
 
   // Open and Read config file.  This is before root file in case

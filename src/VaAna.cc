@@ -60,24 +60,28 @@ Int_t VaAna::Init(TaInput& input) {
   Int_t runnumber = fInput->GetRunNumber();
 
   // Open the ReD root file.
-  TaFileName::Setup(runnumber,theAnaType.Data());
+  // TaFileName::Setup(runnumber,theAnaType.Data());
 
-  TaFileName redname = TaFileName("output",
-				  fInput->GetConfig().GetCommentTag());
-  cout << "Root output: " << redname.String().c_str() << endl;
-  fRedFile = new TFile(redname.String().c_str(),"RECREATE");
+  // TaFileName redname = TaFileName("output",
+  // 				  fInput->GetConfig().GetCommentTag());
+
+  TString name_stem = fInput->GetNameStem();
+  TString redname = name_stem+runnumber+"_"+theAnaType;
+  redname = redname+"_postpan.root";
+  TString output_path = "./results/";
+  cout << "Root output: " << output_path+redname << endl;
+  fRedFile = new TFile(output_path+redname,"RECREATE");
   if (fRedFile->IsOpen() == kFALSE) {
-    cerr << "Could not open Output file: " << redname.String().c_str() << endl;
+    cerr << "Could not open Output file: " << output_path+redname << endl;
     return 1;
   }
-
 
   // Open the results file.
   fTxtOut = new TaOResultsFile ("redana",
 				runnumber,
-				theAnaType.Data(),
-				fInput->GetConfig().GetCksum(),
-				fInput->GetConfig().GetCommentTag());
+				theAnaType,
+				fInput->GetNameStem());
+
 
   return 0;
 
