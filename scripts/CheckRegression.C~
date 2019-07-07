@@ -1,0 +1,148 @@
+#include <vector>
+void PlotCorrelation( Int_t , TString ,TString , TString);
+
+// vector<TString> sam{
+//   "asym_sam2","asym_sam3","asym_sam4",
+//   "asym_sam5","asym_sam6","asym_sam7","asym_sam8"};
+
+vector<TString> sam{
+  "asym_sam2","asym_sam6",
+    "asym_sam4","asym_sam8"};
+
+vector<TString> bpm{
+  "diff_bpm4aX","diff_bpm4aY",
+  "diff_bpm4eX","diff_bpm4eY",
+  "diff_bpm14X","diff_bpm14Y",
+  "diff_bpm18X","diff_bpm18Y"};
+
+// vector<TString> reg_sam{
+//   "reg_asym_sam2","reg_asym_sam3","reg_asym_sam4",
+//   "reg_asym_sam5","reg_asym_sam6","reg_asym_sam7","reg_asym_sam8"};
+vector<TString> reg_sam{
+  "reg_asym_sam2","reg_asym_sam6","reg_asym_sam4","reg_asym_sam8"};
+
+
+void CheckRegression(Int_t run_num = 1391){
+  gStyle->SetOptFit(1);
+  gStyle->SetStatW(0.3);
+  gStyle->SetStatH(0.2);
+  gStyle->SetStatX(0.95);
+  gStyle->SetStatY(0.95);
+
+  PlotCorrelation(run_num, "sam", "bpm", "colz"); 
+  PlotCorrelation(run_num, "sam", "bpm", "prof");
+  PlotCorrelation(run_num, "sam", "sam", "colz");
+  PlotCorrelation(run_num, "sam", "sam", "prof");
+
+  PlotCorrelation(run_num, "reg_sam", "bpm", "colz");
+  PlotCorrelation(run_num, "reg_sam", "bpm", "prof");
+  PlotCorrelation(run_num, "reg_sam", "reg_sam", "colz");
+  PlotCorrelation(run_num, "reg_sam", "reg_sam", "prof");
+}
+
+void PlotCorrelation( Int_t run_num, TString dv_type,TString iv_type, TString draw_opt)
+{
+  TFile* rootfile = TFile::Open(Form("./ROOTfiles/prexALL_%d_regress.root",run_num));
+  TTree *reg = (TTree*)rootfile ->Get("reg");
+
+  // iv : independent variabls
+  // dv : dependent variabls
+  
+  TString cuts = "ok_cut";
+  vector<TString> iv_name ; 
+  vector<TString> dv_name;
+
+  if( dv_type=="sam")
+    dv_name = sam;
+  else if(dv_type=="reg_sam")
+    dv_name = reg_sam;
+  else if(dv_type=="bpm")
+    dv_name = bpm;
+
+  if( iv_type=="sam")
+    iv_name = sam;
+  else if(iv_type=="reg_sam")
+    iv_name = reg_sam;
+  else if(iv_type=="bpm")
+    iv_name = bpm;
+
+  Int_t ndvs= dv_name.size();
+  Int_t nivs= iv_name.size();
+  
+  vector<double> iv_mean;
+  vector<double> iv_rms;
+  vector<double> dv_mean;
+  vector<double> dv_rms;
+
+  for(int i=0;i<ndvs;i++){
+    reg->Draw(Form("%s>>hdv%d",dv_name[i].Data(),i),cuts);
+    TH1D *hbuff = (TH1D*)gDirectory->FindObject(Form("hdv%d",i));
+    dv_mean.push_back( hbuff->GetMean());
+    dv_rms.push_back( hbuff->GetRMS() );
+  }
+  for(int i=0;i<nivs;i++){
+    reg->Draw(Form("%s>>hiv%d",iv_name[i].Data(),i),cuts);
+    TH1D *hbuff = (TH1D*)gDirectory->FindObject(Form("hiv%d",i));
+    iv_mean.push_back( hbuff->GetMean());
+    iv_rms.push_back( hbuff->GetRMS());
+  }
+
+  vector<TText * > dv_txt;
+  vector<TText * > iv_txt;
+
+  for(int i=0;i<ndvs;i++){
+    TText *txt = new TText(0.1,0.3, dv_name[i]);
+    txt->SetTextSize(0.1);
+    dv_txt.push_back(txt);
+  }
+
+  for(int i=0;i<nivs;i++){
+    TText *txt = new TText(0.0,0.90, iv_name[i]);
+    txt->SetTextSize(0.15);
+    txt->SetNDC();
+    iv_txt.push_back(txt);
+  }
+
+  Int_t c_height = 600;
+  TCanvas *c1  = new TCanvas("c1","c1",c_height*(nivs+1), c_height);
+  c1->Divide(nivs+1,1); // columns : iv 
+
+  for(int irow=0;irow<ndvs; irow++){
+    c1->Clear("D");
+    c1->cd(1);
+    dv_txt[irow]->Draw();
+    for(int icol=0; icol< nivs; icol++){
+      c1->cd(icol+2);
+      double x_low = iv_mean[icol]-3*iv_rms[icol];
+      double x_up = iv_mean[icol]+3*iv_rms[icol];
+      double y_low = dv_mean[irow]-3*dv_rms[irow];
+      double y_up = dv_mean[irow]+3*dv_rms[irow];
+
+      // reg->Draw(
+      // 		Form("%s:%s>>h%d_%d(50,%f,%f,50,%f,%f)", 
+      // 		     dv_name[irow].Data(),iv_name[icol].Data(), 
+      // 		     icol,irow,x_low,x_up,y_low,y_up ),
+      // 		cuts,draw_opt);
+      reg->Draw(
+		Form("%s:%s>>h%d_%d", 
+		     dv_name[irow].Data(),iv_name[icol].Data(), icol,irow),
+		cuts,draw_opt);
+
+      TH1D* h_buff = (TH1D*)gDirectory->FindObject(Form("h%d_%d",icol,irow));
+      h_buff->SetTitle("");
+      if(draw_opt=="prof"){
+	gStyle->SetOptStat(0);
+	h_buff->Fit("pol1","QR","",iv_mean[icol]-iv_rms[icol],iv_mean[icol]+iv_rms[icol]);
+      }
+      iv_txt[icol]->Draw("same");
+    }
+    c1->SaveAs(Form("run%d_correlation%d.png",run_num,irow));
+  }
+  gSystem->Exec(Form("convert run%d_correlation*.png run%d_%s_vs_%s-%s.pdf",
+		     run_num, run_num,dv_type.Data(),iv_type.Data(),draw_opt.Data() ));
+
+  gSystem->Exec(Form("rm run%d_correlation*.png", run_num));
+
+}
+
+
