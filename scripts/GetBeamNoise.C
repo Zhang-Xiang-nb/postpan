@@ -1,11 +1,14 @@
-void GetBeamNoise(Int_t run_num, TString name_stem="prexTest"){
 
-  TString output_filename = Form("./%s_run%d_postpan_summary.txt",
-				 name_stem.Data(),run_num);
+void GetBeamNoise(TString run_seg, TString name_stem){
+
+  TString input_filename= Form("./results/%s_%s_regress_postpan.root",
+			       name_stem.Data(),run_seg.Data());
+
+  TString output_filename = Form("./results/%s_%s_postpan_summary.txt",
+				 name_stem.Data(),run_seg.Data());
   FILE *summary_txt = fopen(output_filename.Data(), "w");
 
-  TFile* rootfile = TFile::Open(Form("./results/%s_%d_regress_postpan.root",
-				     name_stem.Data(),run_num));
+  TFile* rootfile = TFile::Open(input_filename);
   TTree *reg = (TTree*)rootfile ->Get("reg");
   TTree *regcoeffs = (TTree*)rootfile ->Get("regcoeffs");
   
