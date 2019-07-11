@@ -37,7 +37,7 @@ ifdef PROFILE
 endif
 
    CXXFLAGS += -O2
-   CXXFLAGS += -g
+   CXXFLAGS += -g -std=c++11
 
 
 # Grow the list of sources and pan objects here.
