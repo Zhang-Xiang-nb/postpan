@@ -27,102 +27,6 @@
 
 using namespace std;
 
-class TaRootDitDef : public TObject {
-  // Class to define variables within the reg Tree 
-  // This is then stored in the root file
-public:
-  TaRootDitDef() {}
-  ~TaRootDitDef() {}
-  void PutDetector(TString name) { DetNames.push_back(name); }
-  void PutMonitor(TString name) { MonNames.push_back(name); }
-  void PutCoil(TString name) { CoilNames.push_back(name); }
-  TString GetDetectorName(Int_t index) {
-    return DetNames[index];
-  }
-  TString GetMonitorName(Int_t index) {
-    return MonNames[index];
-  }
-  TString GetCoilName(Int_t index) {
-    return CoilNames[index];
-  }
-  Int_t GetDetectorIndex(TString name) {
-    for (UInt_t i=0; i<DetNames.size(); i++) {
-      if (name == DetNames[i]) return i;
-    }
-    return -1;
-  }
-  Int_t GetMonitorIndex(TString name) {
-    for (UInt_t i=0; i<MonNames.size(); i++) {
-      if (name == MonNames[i]) return i;
-    }
-    return -1;
-  }
-  Int_t GetCoilIndex(TString name) {
-    for (UInt_t i=0; i<CoilNames.size(); i++) {
-      if (name == CoilNames[i]) return i;
-    }
-    return -1;
-  }
-  Int_t GetNumDetectors() { return DetNames.size(); }
-  Int_t GetNumMonitors() { return MonNames.size(); }
-  Int_t GetNumCoils() { return CoilNames.size(); }
-
-
-  void Print() {
-    //    cout << "TaRootDitDef::Print()" << endl;
-    cout  << endl;
-    for (UInt_t i=0; i<CoilNames.size(); i++) {
-      cout << "Coil Index " << i << ": " << CoilNames[i] << endl;
-    }
-    cout  << endl;
-    for (UInt_t i=0; i<MonNames.size(); i++) {
-      cout << "Monitor Index " << i << ": " << MonNames[i] << endl;
-    }
-    cout  << endl;
-    for (UInt_t i=0; i<DetNames.size(); i++) {
-      cout << "Detector Index " << i << ": " << DetNames[i] << endl;
-    }
-    cout  << endl;
-  }
-  void Usage() {
-    // Prints out some usage info
-    cout << "This object serves as your guide to the ditslps tree." << endl;
-    cout << endl 
-	 << "TString TaRootDitDef::GetCoilName(Int_t index) -" << endl
-	 << "  retrieves the Name of the Modulation Object "
-	 << "stored at index.";
-    cout << endl 
-	 << "TString TaRootDitDef::GetMonitorName(Int_t index) -" << endl
-	 << "  retrieves the Name of the Monitor "
-	 << "stored at index.";
-    cout << endl 
-	 << "TString TaRootDitDef::GetDetectorName(Int_t index) -" << endl
-	 << "  retrieves the Name of the Detector "
-	 << "stored at index.";
-    cout << endl << endl
-	 << "Int_t TaRootDitDef::GetCoilIndex(TString name) -" << endl
-	 << "  retrieves the index of the Modulation Object "
-	 << "stored with name.";
-    cout << endl << endl
-	 << "Int_t TaRootDitDef::GetMonitorIndex(TString name) -" << endl
-	 << "  retrieves the index of the Monitor "
-	 << "stored with name.";
-    cout << endl << endl
-	 << "Int_t TaRootDitDef::GetDetectorIndex(TString name) -" << endl
-	 << "  retrieves the index of the Detector "
-	 << "stored with name.";
-    cout << endl << endl;
-  }
-private:
-  vector <TString> DetNames;
-  vector <TString> MonNames;
-  vector <TString> CoilNames;
-
-  ClassDef(TaRootDitDef,1) // Class to define variables within reg tree
-    
-};
-
-
 class TaDitAna : public VaAna{
       
   ClassDef(TaDitAna,0) // dithering analysis class
@@ -153,7 +57,7 @@ class TaDitAna : public VaAna{
   Double_t DitLimit[fgNCoils]; // limits for each coil, indexed by used coil
 
   // Vectors for cuts
-  vector <TString> RwPanCuts;                 // Pan Cuts defined from Raw leafs
+  vector <TString> RawCuts;                 // cuts defined from Raw leafs
 
   Int_t fNDet;       // number of detectors used
   Int_t fNDit;       // number of coils used
@@ -170,8 +74,7 @@ class TaDitAna : public VaAna{
 
   TaDitCyc * curCyc;
 
-  TaRootDitDef *rootdef;
-
+  TFile *fSlopeFile;
   // Private methods
 
   //public:
@@ -186,10 +89,10 @@ class TaDitAna : public VaAna{
   void ComputeDitCoeffs ();      // calc dit coeffs and slopes from each S-C
   void OutputResults();         // generate text and rootfile output
 
+  Int_t LoadConfig();
   Bool_t LoadModData();
   Bool_t OutputSlopes();    // output slopes for each minirun
   Bool_t FillSlopesTree();  // put slopes for each minirun into tree
-  Bool_t CorrectPairTree();  // fill ditpair tree with corrected asyms for all dets
   void PrintCycResults(Int_t);   // print slopes/coeffs from indicated cycle
 
   // Modifier Methods

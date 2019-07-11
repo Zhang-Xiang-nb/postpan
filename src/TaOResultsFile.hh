@@ -61,13 +61,21 @@ class TaOResultsFile: public ofstream
   virtual ~TaOResultsFile();
   
   // Major functions
-
+  void WriteHeader(vector<string> header);
+  
   void WriteNextLine (const string rtag, 
 		      const Double_t res,
 		      const Double_t err,
 		      const EventNumber_t ev0,
 		      const EventNumber_t ev1,
 		      const string units,
+		      const string com);      // Write a line to the file
+  
+  void WriteNextLine (const string rtag, 
+		      const Double_t res,
+		      const Double_t err,
+		      const string units,
+		      const Bool_t stat,
 		      const string com);      // Write a line to the file
 
   void WriteNextLine (const char* rtag, 

@@ -98,12 +98,12 @@ public:
   }
   Double_t GetErrSlopeDetVDit(Int_t idet, Int_t imodobj) {
     if (imodobj>=fNDitUsed || idet>=fNDetUsed) return -1.E9;
-    return fDetDSlpE[imodobj][idet];;
+    return fDetDSlpE[imodobj][idet];
   }
 
   Bool_t StatusSlopeDetVDit(Int_t idet, Int_t imodobj) {
-    if (imodobj>=fNDitUsed || idet>=fNDetUsed) return -1.E9;
-    return fDetDSlpStatus[imodobj][idet];;
+    if (imodobj>=fNDitUsed || idet>=fNDetUsed) return kFALSE;
+    return fDetDSlpStatus[imodobj][idet];
   }
 
   Double_t GetSlopeMonVDit(Int_t imon, Int_t imodobj) {
@@ -117,8 +117,8 @@ public:
   }
 
   Bool_t StatusSlopeMonVDit(Int_t imon, Int_t imodobj) {
-    if (imodobj>=fNDitUsed || imon>=fNMonUsed) return -1.E9;
-    return fMonDSlpStatus[imodobj][imon];;
+    if (imodobj>=fNDitUsed || imon>=fNMonUsed) return kFALSE;
+    return fMonDSlpStatus[imodobj][imon];
   }
 
   Double_t GetCoeffDetVMon(Int_t idet, Int_t imon) {
@@ -130,6 +130,11 @@ public:
   Double_t GetErrCoeffDetVMon(Int_t idet, Int_t imon) {
     if (idet>=fNDetUsed || imon>=fNMonUsed) return -1.E9;
     return fDetMonCoefE[idet][imon];
+  }
+
+  Bool_t StatusCoeffDetVMon(Int_t idet, Int_t imon) {
+    if (idet>=fNDetUsed || imon>=fNMonUsed) return kFALSE;
+    return fDetMonCoefStatus[idet][imon];
   }
 
   Double_t GetModVal(Int_t imodobj, Int_t iwin) {
@@ -218,7 +223,7 @@ public:
 
   Double_t fDetMonCoef[fgMaxDet][fgMaxMon];
   Double_t fDetMonCoefE[fgMaxDet][fgMaxMon];
-
+  Bool_t fDetMonCoefStatus[fgMaxDet][fgMaxMon];
 };
 
 #endif

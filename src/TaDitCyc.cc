@@ -313,10 +313,16 @@ void TaDitCyc::CalcSlopes()
   fSlps_Done=kFALSE;
 
   for (Int_t ic=0; ic<fNDitUsed; ic++) {
-    for (Int_t idet = 0 ; idet<fNDetUsed; idet++) 
+    for (Int_t idet = 0 ; idet<fNDetUsed; idet++) {
+      fDetDSlp[ic][idet] = 0.0;  
+      fDetDSlpE[ic][idet] = 0.0;
       fDetDSlpStatus[ic][idet] = kFALSE;
-    for (Int_t imon = 0 ; imon<fNMonUsed; imon++) 
+    }
+    for (Int_t imon = 0 ; imon<fNMonUsed; imon++) {
+      fMonDSlp[ic][imon] = 0.0;  
+      fMonDSlpE[ic][imon] = 0.0;
       fMonDSlpStatus[ic][imon] = kFALSE;
+    }
   }
 
   // calculate slopes for detector and monitors vs. Coils, 
@@ -468,6 +474,12 @@ void TaDitCyc::CalcCoeffs()
 {
   // calculate the correction coefficients and covariance matrix
   // using results of CalcSlopes
+
+  for (Int_t idet = 0 ; idet<fNDetUsed; idet++) 
+    for (Int_t imon = 0 ; imon<fNMonUsed; imon++) 
+      fDetMonCoefStatus[idet][imon] = kFALSE;
+
+
   if (!fSlps_Done) {
     cout << "Can't calculate Coeffs because slopes aren't calculated!" << endl;
     return;
@@ -582,9 +594,12 @@ void TaDitCyc::CalcCoeffs()
     }
   }
 
-
   fCoeffs_Done=kTRUE;
 
+  for (Int_t idet = 0 ; idet<fNDetUsed; idet++) 
+    for (Int_t imon = 0 ; imon<fNMonUsed; imon++) 
+      fDetMonCoefStatus[idet][imon] = fCoeffs_Done;
+  
 }
 
 

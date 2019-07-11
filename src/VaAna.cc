@@ -64,7 +64,7 @@ Int_t VaAna::Init(TaInput& input) {
 
   // TaFileName redname = TaFileName("output",
   // 				  fInput->GetConfig().GetCommentTag());
-
+  
   TString name_stem = fInput->GetNameStem();
   TString run_seg = fInput->GetRunNumberStr();
   run_seg.ReplaceAll('.','_');

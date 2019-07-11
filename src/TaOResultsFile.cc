@@ -81,6 +81,54 @@ TaOResultsFile::~TaOResultsFile ()
 
 
 // Major functions
+void TaOResultsFile::WriteHeader(std::vector<string> header){
+  if (is_open())
+    {
+      std::vector<string>::iterator it = header.begin();
+      (*this) <<*it ;
+      it++;
+      while(it!=header.end()){
+	(*this) <<"\t"<<*it;
+	it++;
+      }
+      (*this)<<endl;
+    }
+}
+
+void
+TaOResultsFile::WriteNextLine (const string rtag, 
+			       const Double_t res,
+			       const Double_t err,
+			       const string units,
+			       const Bool_t stat,
+			       const string com) {
+  if (is_open())
+    {
+      // setf (ios::fmtflags(0), ios::floatfield);
+      (*this) << rtag;
+      
+      // setf (ios::scientific, ios::floatfield);
+
+      (*this) << "\t" << std::setprecision(4) << res
+	      << "\t" << std::setprecision(4) << err;
+      
+      if(stat==kTRUE)
+	(*this) << "\t"<< "Good";
+      else
+	(*this) << "\t"<< "Invalid";
+      
+      // setf (ios::fmtflags(0), ios::floatfield);
+      (*this) << "\t" << units;
+      
+      if (com != "")
+	(*this) << "\t# " << com;
+      
+      (*this) << endl;
+    }
+  else
+    cerr << "TaOResultsFile::Write ERROR: Cannot write to results file" << endl;
+
+}
 
 void
 TaOResultsFile::WriteNextLine (const string rtag, 
@@ -186,9 +234,9 @@ TaOResultsFile::Create (const string ptag,
       (*this) << "# Pan parity analyzer results file " << fn.String() 
 	       << " " << TDatime().AsSQLString() << endl;
       (*this) << endl;
-      (*this) << "# Run  Ana type  Database checksum:" << endl;
+      (*this) << "Run\tAnaType\tChecksum" << endl;
 
-      (*this) << run << " " << atype << " ";
+      (*this) << run << "\t" << atype << "\t";
       (*this) << chksum << endl;
       (*this) << endl;
     }
