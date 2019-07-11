@@ -66,7 +66,9 @@ Int_t VaAna::Init(TaInput& input) {
   // 				  fInput->GetConfig().GetCommentTag());
   
   TString name_stem = fInput->GetNameStem();
-  TString redname = name_stem+Form("%d",runnumber)+"_"+theAnaType;
+  TString run_seg = fInput->GetRunNumberStr();
+  run_seg.ReplaceAll('.','_');
+  TString redname = name_stem+run_seg+"_"+theAnaType;
   redname = redname+"_postpan.root";
   TString output_path = "./results/";
   cout << "Root output: " << output_path+redname << endl;

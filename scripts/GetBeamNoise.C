@@ -1,11 +1,14 @@
-void GetBeamNoise(Int_t run_num, TString name_stem="prexTest"){
 
-  TString output_filename = Form("./%s_run%d_postpan_summary.txt",
-				 name_stem.Data(),run_num);
+void GetBeamNoise(TString run_seg, TString name_stem){
+
+  TString input_filename= Form("./results/%s_%s_regress_postpan.root",
+			       name_stem.Data(),run_seg.Data());
+
+  TString output_filename = Form("./results/%s_%s_postpan_summary.txt",
+				 name_stem.Data(),run_seg.Data());
   FILE *summary_txt = fopen(output_filename.Data(), "w");
 
-  TFile* rootfile = TFile::Open(Form("./results/%s_%d_regress_postpan.root",
-				     name_stem.Data(),run_num));
+  TFile* rootfile = TFile::Open(input_filename);
   TTree *reg = (TTree*)rootfile ->Get("reg");
   TTree *regcoeffs = (TTree*)rootfile ->Get("regcoeffs");
   
@@ -16,6 +19,8 @@ void GetBeamNoise(Int_t run_num, TString name_stem="prexTest"){
 
   TString IVname[] = {
     "diff_bpm4aX","diff_bpm4aY","diff_bpm4eX","diff_bpm4eY","diff_bpm12X"};
+  // TString IVname[] = {
+  //   "diff_bpm4acX","diff_bpm4acY","diff_bpm4eX","diff_bpm4eY","diff_bpm12X"};
 
   TString DVname[] = { 
     "asym_sam1","asym_sam2","asym_sam3","asym_sam4",
@@ -41,6 +46,9 @@ void GetBeamNoise(Int_t run_num, TString name_stem="prexTest"){
   Double_t *DVmean_raw = new Double_t[nDV];
   Double_t *DVmean_reg = new Double_t[nDV];
 
+  Double_t *DVerror_raw = new Double_t[nDV];
+  Double_t *DVerror_reg = new Double_t[nDV];
+
   Double_t *DVrms_norm = new Double_t[nDV];
 
   Double_t *Coeff = new Double_t[nDV*nIV]; // postpan output
@@ -64,10 +72,13 @@ void GetBeamNoise(Int_t run_num, TString name_stem="prexTest"){
       DVrms_raw[kDV] =(hraw_buff->GetRMS() ) * to_ppm;
       DVmean_raw[kDV] =(hraw_buff->GetMean() ) * to_ppm;
 
+      DVerror_raw[kDV] =(hraw_buff->GetRMS()/TMath::Sqrt(hraw_buff->GetEntries()) ) * to_ppm;
+
       reg->Draw(Form("reg_%s >> dv%d%d_reg", DVname[kDV].Data(),kDV,kMinirun), my_cut,"goff");
       TH1D *hreg_buff = (TH1D*)gDirectory->FindObject(Form("dv%d%d_reg",kDV,kMinirun));
       DVrms_reg[kDV] =(hreg_buff->GetRMS() ) * to_ppm;
       DVmean_reg[kDV] =(hreg_buff->GetMean() ) * to_ppm;
+      DVerror_reg[kDV] =(hreg_buff->GetRMS()/TMath::Sqrt(hreg_buff->GetEntries()) ) * to_ppm;
 
       reg->Draw(Form("reg_%s >> dv%d%d_norm", DVname[kDV].Data(),kDV,kMinirun), my_cut,"goff");
       TH1D *hnorm_buff = (TH1D*)gDirectory->FindObject(Form("dv%d%d_norm",kDV,kMinirun));
@@ -106,16 +117,16 @@ void GetBeamNoise(Int_t run_num, TString name_stem="prexTest"){
     fprintf(summary_txt, 
 	    "%-12s\t%-12s\t%-12s\t%-20s\t%-15s\t%-15s\t%-12s\n",
 	    "",
-	    "Raw Mean(ppm)","RMS(ppm)",
-	    "Regressed Mean(ppm)","RMS (ppm)", 
+	    "Raw Mean+/-Err(ppm)","RMS(ppm)",
+	    "Regressed Mean+/-Err(ppm)","RMS (ppm)", 
 	    "Correction on Mean(ppm)","RMS of BPM Coherent Sum(ppm)");
 
     for(int kDV=0;kDV<nDV;kDV++){
       fprintf(summary_txt, 
-	      "%-12s\t%-12.2f\t%-12.2f\t%-20.2f\t%-17.2f\t%-15.2f\t%-12.2f\n",
+	      "%-12s\t%-3.2f+/-%-9.2f\t%-12.2f\t%-3.2f+/-%-17.2f\t%-17.2f\t%-15.2f\t%-12.2f\n",
 	      DVname[kDV].Data(), 
-	      DVmean_raw[kDV],DVrms_raw[kDV], 
-	      DVmean_reg[kDV],DVrms_reg[kDV], 
+	      DVmean_raw[kDV],DVerror_raw[kDV],DVrms_raw[kDV], 
+	      DVmean_reg[kDV],DVerror_reg[kDV],DVrms_reg[kDV], 
 	      DVmean_raw[kDV]-DVmean_reg[kDV],CoherentNoise[kDV]);
     }
 

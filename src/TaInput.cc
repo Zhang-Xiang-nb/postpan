@@ -86,6 +86,7 @@ Int_t TaInput::Init(string runfile_str) {
   Ssiz_t last_t = runfile.Last('.');
   Int_t length_t = last_t -first_t;
   TString run_num = runfile(first_t,length_t);
+  fRunNumberStr = run_num;
   fRunNumber = atoi(run_num);
 
   first_t = runfile.Last('/')+1;
@@ -103,7 +104,7 @@ Int_t TaInput::Init(string runfile_str) {
   } else {
     fConfig->Read(fConfFileName);
   }
-
+  
   cout << "JAPAN rootfile: " << runfile << endl;
   fPanFile = new TFile(runfile,"READ");
   if (fPanFile->IsOpen() == kFALSE) {
