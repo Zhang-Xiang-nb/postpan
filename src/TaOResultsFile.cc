@@ -65,14 +65,14 @@ TaOResultsFile::TaOResultsFile (const string ptag,
 }
 // Added by Tao Ye
 TaOResultsFile::TaOResultsFile (const char* ptag, 
-				Int_t run, 
+				TString run_seg, 
 				TString atype, 
 				TString name_stem)
   : ofstream ()
 {
   // Non-stringy constructor for use in CINT
   
-  Create ( ptag, run, atype, name_stem);
+  Create ( ptag, run_seg, atype, name_stem);
 }
 
 TaOResultsFile::~TaOResultsFile ()
@@ -184,14 +184,14 @@ TaOResultsFile::WriteNextLine (const char* rtag,
 
 void 
 TaOResultsFile::Create (const string ptag,
-			Int_t run_number, 
+			TString run_seg, 
 			TString atype, 
 			TString name_stem)
 {
   // Utility for constructors
   fPtag = ptag;
   TString fn;
-  fn = name_stem + run_number+"_"+atype;
+  fn = name_stem + run_seg +"_"+atype;
   fn = fn + ".res";
   TString output_path ="./results/";
   
@@ -206,7 +206,7 @@ TaOResultsFile::Create (const string ptag,
       (*this) << "# Pan parity analyzer results file " << fn 
 	       << " " << TDatime().AsSQLString() << endl;
       (*this) << endl;
-      (*this) << run_number << " " << atype << " ";
+      (*this) << run_seg << " " << atype << " ";
       (*this) << endl;
     }
 }

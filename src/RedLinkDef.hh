@@ -13,7 +13,6 @@
 #pragma link C++ class VaAna;
 #pragma link C++ class TaDitAna;
 #pragma link C++ class TaDitCyc;
-#pragma link C++ class TaRootDitDef;
 #pragma link C++ class TaRegression;
 #pragma link C++ class TaRootRegDef;
 #pragma link C++ class TaRedAna;

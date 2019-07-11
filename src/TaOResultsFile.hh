@@ -50,7 +50,7 @@ class TaOResultsFile: public ofstream
 		  const UInt_t chksum );
 
   TaOResultsFile (const char* ptag, 
-		  Int_t run, 
+		  TString run_seg, 
 		  TString atype, 
 		  TString name_stem);
 
@@ -105,7 +105,7 @@ class TaOResultsFile: public ofstream
 	       const UInt_t chksum); // Util for filename specified constructor
 
   void Create (const string ptag,
-	       Int_t run_number, 
+	       TString run_seg, 
 	       TString atype, 
 	       TString name_stem);
   // Data members
