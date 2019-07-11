@@ -57,7 +57,7 @@ Int_t VaAna::Init(TaInput& input) {
 #ifdef NOISY
   fPairTree->Print();
 #endif
-  Int_t runnumber = fInput->GetRunNumber();
+  //  Int_t runnumber = fInput->GetRunNumber();
 
   // Open the ReD root file.
   // TaFileName::Setup(runnumber,theAnaType.Data());
@@ -80,7 +80,7 @@ Int_t VaAna::Init(TaInput& input) {
 
   // Open the results file.
   fTxtOut = new TaOResultsFile ("redana",
-				runnumber,
+				run_seg,
 				theAnaType,
 				fInput->GetNameStem());
 
