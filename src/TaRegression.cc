@@ -884,8 +884,8 @@ void TaRegression::WriteSummary(){
       fprintf(summary_txt,"%-15s \t", DVnames[kDV].Data());
       for(UInt_t kIV=0;kIV<nIV;kIV++)
     	fprintf(summary_txt,"%-.2f +/- %-9.2f\t", 
-    		Slope[kDV][kIV],
-    		SlopeErr[kDV][kIV]);
+    		Slope[kDV][kIV]/(ppm/um),
+    		SlopeErr[kDV][kIV]/(ppm/um));
       fprintf(summary_txt," \n");
     }
 
