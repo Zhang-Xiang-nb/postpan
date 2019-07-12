@@ -66,8 +66,9 @@ private:
   vector < vector<Double_t> > DVEntriesOrig; // DV Entries in pair tree
 
   vector < vector<Double_t> > PanCutEntries; // Pan Cut Entries in pair tree
-  vector <Int_t> LEvEntries;              // evt_ev_num (low) for entries
-  vector <Int_t> HEvEntries;              // evt_ev_num (high) for entries
+  // vector <Int_t> LEvEntries;              // evt_ev_num (low) for entries
+  // vector <Int_t> HEvEntries;              // evt_ev_num (high) for entries
+  vector< Double_t> pattern_entries;
   vector <Bool_t> GoodEvents;                // Events that Pass all Cuts
   UInt_t nGoodEvents;                        // number of Good Events
 

@@ -68,15 +68,14 @@ TaRegression::Init (TaInput& input)
   vector <TLeaf*> leaf_dvmon;
   vector <TLeaf*> leaf_ivmon;
   vector <TLeaf*> leaf_cut;
-  //  TLeaf* leaf_evnum;
   
-  // Load up the variable names
+  // load up the variable names
   IVnames = fInput->GetConfig().GetIVNames();
   DVnames = fInput->GetConfig().GetDVNames();
   PanCuts = fInput->GetConfig().GetPanCuts();
 
-  Int_t ev[2];
-  // fPairTree->SetBranchAddress("evt_ev_num",ev);
+  Double_t pattern_number;
+  fPairTree->SetBranchAddress("pattern_number",&pattern_number);
 
   // Get the DV leafs and check if they exist in the Tree.
   for(UInt_t i=0; i<DVnames.size(); i++) {
@@ -157,7 +156,6 @@ TaRegression::Init (TaInput& input)
   IVeventvector.clear();
   for(UInt_t ient = 0; ient<TotEvents; ient++) {
     fPairTree->GetEntry(ient);
-    //    ev = leaf_evnum->GetValue();
     for (UInt_t icut = 0; icut<PanCuts.size(); icut++) {
       Double_t current = leaf_cut[icut]->GetValue();
       CUTeventvector.push_back(current);
@@ -174,8 +172,9 @@ TaRegression::Init (TaInput& input)
     DVEntries.push_back(DVeventvector);
     DVEntriesOrig.push_back(DVeventvector);
     IVEntries.push_back(IVeventvector);
-    LEvEntries.push_back( (ev[0]>ev[1]) ? ev[1] : ev[0] );
-    HEvEntries.push_back( (ev[0]>ev[1]) ? ev[0] : ev[1] );
+
+    pattern_entries.push_back( pattern_number);
+
     CUTeventvector.clear();
     DVeventvector.clear();
     IVeventvector.clear();
@@ -304,7 +303,6 @@ TaRegression::MatrixInit ()
     cout << "Minirun unspecified or zero." 
 	 <<"  Generating result for entire run." << endl;
     minirange.push_back(make_pair(0,TotEvents));
-    minirangeEv.push_back(make_pair(LEvEntries[0],HEvEntries[TotEvents-1]));
     for(UInt_t i=0;i<TotEvents;i++)
       minirun.push_back(0);
   }
@@ -322,7 +320,6 @@ TaRegression::MatrixInit ()
 	   << " is less than this." << endl
 	   <<"   Generating result for entire run." << endl;
       minirange.push_back(make_pair(0,TotEvents));
-      minirangeEv.push_back(make_pair(LEvEntries[0],HEvEntries[TotEvents-1]));
       for(UInt_t i=0;i<TotEvents;i++)
 	minirun.push_back(0);
     } else {
@@ -332,14 +329,10 @@ TaRegression::MatrixInit ()
 	for(UInt_t i = 0; i<NumMiniruns; i++) {
 	  minirange.push_back(make_pair(i*PairsPerMinirun,
 					(i+1)*PairsPerMinirun));
-	  minirangeEv.push_back(make_pair(LEvEntries[i*PairsPerMinirun],
-					  HEvEntries[(i+1)*PairsPerMinirun]));
 	}
 	if(minirange[NumMiniruns-1].second<TotEvents) {
 	  minirange.push_back(make_pair(minirange[NumMiniruns-1].second,
 					TotEvents));
-	  minirangeEv.push_back(make_pair(LEvEntries[minirange[NumMiniruns-1].second],
-					  HEvEntries[TotEvents-1]));
 	}
 	// Fill the minirun vector using the defined ranges
 	for (UInt_t imini = 0; imini<minirange.size(); imini++) {
@@ -358,8 +351,6 @@ TaRegression::MatrixInit ()
 	  minirun.push_back(imini);
 	  if(ncount==PairsPerMinirun) {
 	    minirange.push_back(make_pair(startcount,iev));
-	    minirangeEv.push_back(make_pair(LEvEntries[startcount],
-					    HEvEntries[iev]));
 	    startcount=0; ncount=0; imini++;
 	  }
 	}
@@ -369,9 +360,6 @@ TaRegression::MatrixInit ()
 	  minirange.pop_back();
 	  minirange.push_back(make_pair(lastmin.first,
 					TotEvents-1));
-	  minirangeEv.pop_back();
-	  minirangeEv.push_back(make_pair(LEvEntries[lastmin.first],
-					  HEvEntries[TotEvents-1]));
 	  for(UInt_t i=lastmin.first; i<TotEvents; i++) {
 	    minirun[i] = imini-1;
 	  }
@@ -812,9 +800,7 @@ void TaRegression::WriteSummary(){
        << output_filename << endl;
     
   FILE *summary_txt = fopen(output_filename.Data(), "w");
-    
-  const Int_t nIV = IVnames.size();
-  const Int_t nDV = DVnames.size();
+
   Int_t nMinirun = minirange.size();
 
   double ppm = 1e-6;
@@ -847,7 +833,7 @@ void TaRegression::WriteSummary(){
     	    "Regressed Mean+/-Err(ppm)","RMS (ppm)", 
     	    "Correction on Mean(ppm)","RMS of BPM Coherent Sum(ppm)");
 
-    for(UInt_t kDV=0;kDV<nDV;kDV++){
+    for(UInt_t kDV=0;kDV<DVnames.size();kDV++){
       double CoherentNoise = sqrt( DV_raw_rms[kDV]*DV_raw_rms[kDV]
     				   - DV_reg_rms[kDV]*DV_reg_rms[kDV]);
       fprintf(summary_txt, 
@@ -859,30 +845,30 @@ void TaRegression::WriteSummary(){
     }
 
     fprintf(summary_txt, " \n --IV (um): \n" );
-    for(int kIV=0; kIV<nIV; kIV++)
+    for(UInt_t kIV=0; kIV<IVnames.size(); kIV++)
       fprintf(summary_txt,"%-15s \t", IVnames[kIV].Data());
     fprintf(summary_txt," \n");
 
     fprintf(summary_txt,"%-15s \t", "Mean+/-Err(um)");
-    for(int kIV=0; kIV<nIV; kIV++)
+    for(UInt_t kIV=0; kIV<IVnames.size(); kIV++)
      fprintf(summary_txt,"%-3.2f+/-%-12.2f \t", 
     	      IV_mean[kIV]/um,IV_err[kIV]/um);
     fprintf(summary_txt," \n");
 
     fprintf(summary_txt,"%-15s \t", "RMS(um)");
-    for(int kIV=0; kIV<nIV; kIV++)
+    for(UInt_t kIV=0; kIV<IVnames.size(); kIV++)
       fprintf(summary_txt,"%-15.2f \t", IV_rms[kIV]/um);
     fprintf(summary_txt," \n");
 
     fprintf(summary_txt, " \n --Slope (ppm/um): \n");
     fprintf(summary_txt, " %-15s\t ","" );
-    for(UInt_t kIV=0; kIV<nIV; kIV++)
+    for(UInt_t kIV=0; kIV<IVnames.size(); kIV++)
       fprintf(summary_txt,"%-15s \t", IVnames[kIV].Data());
     fprintf(summary_txt," \n");
 
-    for(UInt_t kDV=0;kDV<nDV;kDV++){
+    for(UInt_t kDV=0;kDV<DVnames.size();kDV++){
       fprintf(summary_txt,"%-15s \t", DVnames[kDV].Data());
-      for(UInt_t kIV=0;kIV<nIV;kIV++)
+      for(UInt_t kIV=0;kIV<IVnames.size();kIV++)
     	fprintf(summary_txt,"%-.2f +/- %-9.2f\t", 
     		Slope[kDV][kIV]/(ppm/um),
     		SlopeErr[kDV][kIV]/(ppm/um));
@@ -891,13 +877,13 @@ void TaRegression::WriteSummary(){
 
     fprintf(summary_txt, "\n --Noise (ppm): \n");
     fprintf(summary_txt, " %-15s\t ","" );
-    for(int kIV=0; kIV<nIV; kIV++)
+    for(UInt_t kIV=0; kIV<IVnames.size(); kIV++)
       fprintf(summary_txt,"%-15s \t", IVnames[kIV].Data());
     fprintf(summary_txt," \n");
 
-    for(UInt_t kDV=0;kDV<nDV;kDV++){
+    for(UInt_t kDV=0;kDV<DVnames.size();kDV++){
       fprintf(summary_txt,"%-15s \t", DVnames[kDV].Data());
-      for(UInt_t kIV=0;kIV<nIV;kIV++)
+      for(UInt_t kIV=0;kIV<IVnames.size();kIV++)
     	fprintf(summary_txt,"%-15.2f \t",(Slope[kDV][kIV]*IV_rms[kIV])/(ppm/um));
       fprintf(summary_txt," \n");
     }
@@ -921,7 +907,7 @@ void TaRegression::FillTree() {
   cout << "Filling reg tree with regressed variables" << endl;
 
   TTree reg("reg","regression tree");
-  TTree regrun("reg_run","mini run stats tree ");
+  TTree regrun("mini","mini run stats tree ");
   regrun.SetMarkerStyle(20);
   Double_t iv[IVnames.size()], dv[DVnames.size()], dvorig[DVnames.size()],
     cuts;
@@ -942,10 +928,10 @@ void TaRegression::FillTree() {
   parity_unit.um = 1e-3;
 
   reg.Branch("ok_cut",&cuts,"ok_cut/D");
-  reg.Branch("reg_mini_first_ev",&first_ev,"reg_mini_first_ev/I");
-  reg.Branch("reg_mini_last_ev",&last_ev,"reg_mini_last_ev/I");
-  regrun.Branch("reg_mini_first_ev",&first_ev,"reg_mini_first_ev/I");
-  regrun.Branch("reg_mini_last_ev",&last_ev,"reg_mini_last_ev/I");
+  reg.Branch("pattern_begin",&first_ev,"pattern_begin/I");
+  reg.Branch("pattern_end",&last_ev,"pattern_end/I");
+  regrun.Branch("pattern_begin",&first_ev,"pattern_begin/I");
+  regrun.Branch("pattern_end",&last_ev,"pattern_end/I");
   
   for(UInt_t k = 0; k<IVnames.size(); k++) {
     buff = IVnames[k];
@@ -1018,8 +1004,8 @@ void TaRegression::FillTree() {
     }
     ev = i;
     cuts = GoodEvents[i];
-    first_ev = minirangeEv[mini].first;
-    last_ev = minirangeEv[mini].second;
+    first_ev = minirange[mini].first;
+    last_ev = minirange[mini].second;
     reg.Fill();
   }
   reg.Write();
@@ -1027,8 +1013,8 @@ void TaRegression::FillTree() {
   if (fInput->GetConfig().GetRegressType() == "matrix") {
     for(UInt_t imini=0; imini<minirange.size(); imini++){
       mini = imini;
-      first_ev = minirangeEv[imini].first;
-      last_ev = minirangeEv[imini].second;
+      first_ev = minirange[imini].first;
+      last_ev = minirange[imini].second;
       for(UInt_t idv=0;idv<DVnames.size();idv++)
 	for(UInt_t iiv=0;iiv<IVnames.size();iiv++) {
 	  coeff[idv][iiv] = mCoeff[imini][idv][iiv];
