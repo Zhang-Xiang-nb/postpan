@@ -22,7 +22,6 @@
 #include "TaOResultsFile.hh"
 
 ClassImp(TaRegression);
-ClassImp(TaRootRegDef);
 
 // Constructors/destructors/operators
 
@@ -526,7 +525,6 @@ void TaRegression::ProcessMatrix () {
       IVStats->Update(currentIV);
       goodcount++;
     }
-    WriteStats(imini,kFALSE);
     if (goodcount == 0) {
       cout << "  Zero pairs passing defined PAN cuts. " 
 	   << "Proceeding to next minirun." << endl;
@@ -559,9 +557,6 @@ void TaRegression::ProcessMatrix () {
       mDV_reg_mean.push_back(dummyDV_zero);
       mDV_reg_rms.push_back(dummyDV_zero);
       mDV_reg_err.push_back(dummyDV_zero);
-
-      WriteSlopes(imini);
-      WriteStats(imini,kTRUE);
       continue;
     }
 
@@ -642,8 +637,6 @@ void TaRegression::ProcessMatrix () {
       mDV_reg_rms.push_back(dummyDV_zero);
       mDV_reg_err.push_back(dummyDV_zero);
 
-      WriteSlopes(imini);
-      WriteStats(imini,kTRUE);
       continue;
     }
 #ifdef NOISY2
@@ -801,68 +794,11 @@ void TaRegression::ProcessMatrix () {
     }
     cout << "\n----------------- END OF Prompt Summary--------------------" << endl;
 #endif
-    // I don't think we need this format print out at this moment;-- Tao Y 
-    // WriteStats(imini,kTRUE);
-    // WriteSlopes(imini);
+
   } // End of minirun FOR-loop
   WriteSummary();
   FillStats();
   FillTree();
-}
-
-void TaRegression::WriteStats(UInt_t imini, Bool_t regressed) {
-  // Write out the statistics for the DV
-  if(!regressed) {
-    (*fTxtOut) << "# Dependent variable statistics for minirun " << imini 
-	       << " ===================" << endl;  
-  }
-  for (UInt_t iDV = 0; iDV < DVnames.size(); iDV++) {
-    TString regname = "minirun_";
-    regname += imini;
-    if(regressed) regname += "_regressed";
-    regname += "_";
-    regname += DVnames[iDV];
-    regname += "_";
-    fTxtOut->WriteNextLine (regname + "mean",
-			    DVStats->Mean(iDV),
-			    DVStats->MeanErr(iDV),
-			    minirange[imini].first,
-			    minirange[imini].second-1,"","");
-    fTxtOut->WriteNextLine (regname + "RMS",
-			    DVStats->DataRMS(iDV),
-			    0,
-			    minirange[imini].first,
-			    minirange[imini].second-1,"","");
-    fTxtOut->WriteNextLine (regname + "Neff",
-			    DVStats->Neff(iDV),
-			    0,
-			    minirange[imini].first,
-			    minirange[imini].second-1,"","");
-  }
-}
-
-void TaRegression::WriteSlopes(UInt_t imini) {
-  // Write out the matrix regression slopes to the results file.
-
-  (*fTxtOut) << "# Minirun slopes for minirun " << imini 
-	     << " ===================" << endl;  
-  for (UInt_t iDV = 0; iDV < DVnames.size(); iDV++) {
-    TString slopename = "minirun_";
-    slopename += imini;
-    slopename += "_";
-    slopename += DVnames[iDV];
-    slopename += "_vs_";
-    for (UInt_t iIV = 0; iIV < IVnames.size(); iIV++) {
-      TString name_end = slopename;
-      name_end += IVnames[iIV];
-      name_end += "_slope";
-      fTxtOut->WriteNextLine (name_end, 
-			      mCoeff[imini][iDV][iIV], 
-			      mErrCoeff[imini][iDV][iIV], 
-			      minirange[imini].first, 
-			      minirange[imini].second-1, "", "");
-    }
-  }    
 }
 
 void TaRegression::WriteSummary(){

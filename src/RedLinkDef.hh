@@ -14,7 +14,6 @@
 #pragma link C++ class TaDitAna;
 #pragma link C++ class TaDitCyc;
 #pragma link C++ class TaRegression;
-#pragma link C++ class TaRootRegDef;
 #pragma link C++ class TaRedAna;
 
 #endif

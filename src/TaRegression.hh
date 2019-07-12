@@ -19,76 +19,6 @@ class TFile;
 class TTree;
 class TaInput;
 class TaStatistics;
-
-class TaRootRegDef : public TObject {
-  // Class to define variables within the reg Tree 
-  // This is then stored in the root file
-public:
-  TaRootRegDef() {}
-  ~TaRootRegDef() {}
-  void PutIV(TString name) { IVvarnames.push_back(name); }
-  void PutDV(TString name) { DVvarnames.push_back(name); }
-  UInt_t GetIVNumber() {
-    return IVvarnames.size();
-  }
-  UInt_t GetDVNumber() {
-    return DVvarnames.size();
-  }
-  TString GetIVName(Int_t index) {
-    return IVvarnames[index];
-  }
-  TString GetDVName(Int_t index) {
-    return DVvarnames[index];
-  }
-  Int_t GetIVIndex(TString name) {
-    for (UInt_t i=0; i<IVvarnames.size(); i++) {
-      if (name == IVvarnames[i]) return i;
-    }
-    return -1;
-  }
-  Int_t GetDVIndex(TString name) {
-    for (UInt_t i=0; i<DVvarnames.size(); i++) {
-      if (name == DVvarnames[i]) return i;
-    }
-    return -1;
-  }
-  void Print() {
-    //    cout << "TaRootRegDef::Print()" << endl;
-    for (UInt_t i=0; i<IVvarnames.size(); i++) {
-      cout << "IV Index " << i << ": " << IVvarnames[i] << endl;
-    }
-    for (UInt_t i=0; i<DVvarnames.size(); i++) {
-      cout << "DV Index " << i << ": " << DVvarnames[i] << endl;
-    }
-  }
-  void Usage() {
-    // Prints out some usage info
-    cout << endl 
-	 << "TString TaRootRegDef::GetIVName(Int_t index) -" << endl
-	 << "  retrieves the Name of the Independent variable "
-	 << "stored at index.";
-    cout << endl << endl
-	 << "TString TaRootRegDef::GetDVName(Int_t index) -" << endl
-	 << "  retrieves the Name of the Dependent variable "
-	 << "stored at index.";
-    cout << endl << endl
-	 << "Int_t TaRootRegDef::GetIVIndex(TString name) -" << endl
-	 << "  retrieves the index of the Independent variable "
-	 << "stored with name.";
-    cout << endl << endl
-	 << "Int_t TaRootRegDef::GetDVIndex(TString name) -" << endl
-	 << "  retrieves the index of the Dependent variable "
-	 << "stored with name.";
-    cout << endl << endl;
-  }
-private:
-  vector <TString> IVvarnames;
-  vector <TString> DVvarnames;
-  
-  ClassDef(TaRootRegDef,1) // Class to define variables within reg tree
-    
-    };
-
 class TaRegression: public VaAna {
 
   //  RQ_OBJECT()
@@ -115,8 +45,6 @@ public:
   void ProcessMatrix ();           // Matrix Regression algorithm
   void FillTree();
   void FillStats(); // to fRedFile
-  void WriteStats(UInt_t,Bool_t);
-  void WriteSlopes(UInt_t);
   void WriteSummary(); // Printing Summary Outputs
 
 private:
@@ -176,7 +104,5 @@ private:
                                               // Second is event high.
   // Vector indicator for minirun
   vector <UInt_t> minirun;
-
-  TaRootRegDef *rootdef;
 
 };  
