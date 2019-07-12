@@ -805,7 +805,7 @@ void TaRegression::ProcessMatrix () {
     // WriteStats(imini,kTRUE);
     // WriteSlopes(imini);
   } // End of minirun FOR-loop
-  //WriteSummary();
+  WriteSummary();
   FillStats();
   FillTree();
 }
@@ -879,7 +879,7 @@ void TaRegression::WriteSummary(){
     
   const Int_t nIV = IVnames.size();
   const Int_t nDV = DVnames.size();
-  Int_t nMinirun = minirun.size();
+  Int_t nMinirun = minirange.size();
 
   double ppm = 1e-6;
   double um = 1e-3;
@@ -905,22 +905,21 @@ void TaRegression::WriteSummary(){
       fprintf(summary_txt,"\n\n\n\n\n\n\n\n\n"); 
     fprintf(summary_txt, " == Mini-run: %d == \n", kMinirun);
     fprintf(summary_txt, 
-	    "%-12s\t%-12s\t%-12s\t%-20s\t%-15s\t%-15s\t%-12s\n",
-	    "",
-	    "Raw Mean+/-Err(ppm)","RMS(ppm)",
-	    "Regressed Mean+/-Err(ppm)","RMS (ppm)", 
-	    "Correction on Mean(ppm)","RMS of BPM Coherent Sum(ppm)");
+    	    "%-12s\t%-12s\t%-12s\t%-20s\t%-15s\t%-15s\t%-12s\n",
+    	    "",
+    	    "Raw Mean+/-Err(ppm)","RMS(ppm)",
+    	    "Regressed Mean+/-Err(ppm)","RMS (ppm)", 
+    	    "Correction on Mean(ppm)","RMS of BPM Coherent Sum(ppm)");
 
-    for(int kDV=0;kDV<nDV;kDV++){
-      
-      double CoherentNoise = 0.0;
-      //sqrt( fabsDV_raw_rms[kDV]*DV_raw_rms[kDV]- DV_reg_rms[kDV]*DV_reg_rms[kDV]);
+    for(UInt_t kDV=0;kDV<nDV;kDV++){
+      double CoherentNoise = sqrt( DV_raw_rms[kDV]*DV_raw_rms[kDV]
+    				   - DV_reg_rms[kDV]*DV_reg_rms[kDV]);
       fprintf(summary_txt, 
-	      "%-12s\t%-3.2f+/-%-9.2f\t%-12.2f\t%-3.2f+/-%-17.2f\t%-17.2f\t%-15.2f\t%-12.2f\n",
-	      DVnames[kDV].Data(), 
-	      DV_raw_mean[kDV]/ppm,DV_raw_err[kDV]/ppm,DV_raw_rms[kDV]/ppm, 
-	      DV_reg_mean[kDV]/ppm,DV_reg_err[kDV]/ppm,DV_reg_rms[kDV]/ppm, 
-	      DV_raw_mean[kDV]/ppm-DV_reg_mean[kDV]/ppm,CoherentNoise/ppm);
+    	      "%-12s\t%-3.2f+/-%-9.2f\t%-12.2f\t%-3.2f+/-%-17.2f\t%-17.2f\t%-15.2f\t%-12.2f\n",
+    	      DVnames[kDV].Data(), 
+    	      DV_raw_mean[kDV]/ppm,DV_raw_err[kDV]/ppm,DV_raw_rms[kDV]/ppm, 
+    	      DV_reg_mean[kDV]/ppm,DV_reg_err[kDV]/ppm,DV_reg_rms[kDV]/ppm, 
+    	      DV_raw_mean[kDV]/ppm-DV_reg_mean[kDV]/ppm,CoherentNoise/ppm);
     }
 
     fprintf(summary_txt, " \n --IV (um): \n" );
@@ -930,8 +929,8 @@ void TaRegression::WriteSummary(){
 
     fprintf(summary_txt,"%-15s \t", "Mean+/-Err(um)");
     for(int kIV=0; kIV<nIV; kIV++)
-      fprintf(summary_txt,"%-3.2f+/-%-12.2f \t", 
-	      IV_mean[kIV]/um,IV_err[kIV]/um);
+     fprintf(summary_txt,"%-3.2f+/-%-12.2f \t", 
+    	      IV_mean[kIV]/um,IV_err[kIV]/um);
     fprintf(summary_txt," \n");
 
     fprintf(summary_txt,"%-15s \t", "RMS(um)");
@@ -941,16 +940,16 @@ void TaRegression::WriteSummary(){
 
     fprintf(summary_txt, " \n --Slope (ppm/um): \n");
     fprintf(summary_txt, " %-15s\t ","" );
-    for(int kIV=0; kIV<nIV; kIV++)
+    for(UInt_t kIV=0; kIV<nIV; kIV++)
       fprintf(summary_txt,"%-15s \t", IVnames[kIV].Data());
     fprintf(summary_txt," \n");
 
-    for(int kDV=0;kDV<nDV;kDV++){
+    for(UInt_t kDV=0;kDV<nDV;kDV++){
       fprintf(summary_txt,"%-15s \t", DVnames[kDV].Data());
-      for(int kIV=0;kIV<nIV;kIV++)
-	fprintf(summary_txt,"%-.2f +/- %-9.2f\t", 
-		Slope[kDV][kIV],
-		SlopeErr[kDV][kIV]);
+      for(UInt_t kIV=0;kIV<nIV;kIV++)
+    	fprintf(summary_txt,"%-.2f +/- %-9.2f\t", 
+    		Slope[kDV][kIV],
+    		SlopeErr[kDV][kIV]);
       fprintf(summary_txt," \n");
     }
 
@@ -960,13 +959,13 @@ void TaRegression::WriteSummary(){
       fprintf(summary_txt,"%-15s \t", IVnames[kIV].Data());
     fprintf(summary_txt," \n");
 
-    for(int kDV=0;kDV<nDV;kDV++){
+    for(UInt_t kDV=0;kDV<nDV;kDV++){
       fprintf(summary_txt,"%-15s \t", DVnames[kDV].Data());
-      for(int kIV=0;kIV<nIV;kIV++)
-	fprintf(summary_txt,"%-15.2f \t",(Slope[kDV][kIV]*IV_rms[kIV])/(ppm/um));
+      for(UInt_t kIV=0;kIV<nIV;kIV++)
+    	fprintf(summary_txt,"%-15.2f \t",(Slope[kDV][kIV]*IV_rms[kIV])/(ppm/um));
       fprintf(summary_txt," \n");
     }
-  }
+  }  // End of Mini Run loop
   fclose(summary_txt);
 }
 
@@ -1050,7 +1049,7 @@ void TaRegression::FillTree() {
     regrun.Branch("err_coeff",&Err_coeff,Err_coeffBuff);
     regrun.Branch("unit",&parity_unit,"ppm/D:um");
 
-    for(int iDV=0;iDV<DVnames.size();iDV++){
+    for(UInt_t iDV=0;iDV<DVnames.size();iDV++){
       regrun.Branch(DVnames[iDV],
 		    &(DV_raw_dataset[iDV]),
 		    "mean/D:err:rms");
@@ -1060,7 +1059,7 @@ void TaRegression::FillTree() {
 		    &(DV_reg_dataset[iDV]),
 		    "mean/D:err:rms");
     }
-    for(int iIV=0;iIV<IVnames.size();iIV++){
+    for(UInt_t iIV=0;iIV<IVnames.size();iIV++){
       regrun.Branch(IVnames[iIV],
 		    &(IV_dataset[iIV]),
 		    "mean/D:err:rms");
