@@ -114,8 +114,10 @@ public:
   void ProcessLinear ();           // Linear Regression algorithm
   void ProcessMatrix ();           // Matrix Regression algorithm
   void FillTree();
+  void FillStats(); // to fRedFile
   void WriteStats(UInt_t,Bool_t);
   void WriteSlopes(UInt_t);
+  void WriteSummary(); // Printing Summary Outputs
 
 private:
 
@@ -146,6 +148,19 @@ private:
   vector < vector < vector <Double_t> > > mCoeff;
   vector < vector < vector <Double_t> > > mErrCoeff;
 
+  vector<vector<Double_t> > mIV_mean;
+  vector<vector<Double_t> > mIV_rms;
+  vector<vector<Double_t> > mIV_err;
+
+  vector<vector<Double_t> > mDV_raw_mean;
+  vector<vector<Double_t> > mDV_raw_rms;
+  vector<vector<Double_t> > mDV_raw_err;
+
+  vector<vector<Double_t> > mDV_reg_mean;
+  vector<vector<Double_t> > mDV_reg_rms;
+  vector<vector<Double_t> > mDV_reg_err;
+
+  
   // Vectors for IV and DV names
   vector <TString> DVnames;                 // DV Names.
   vector <TString> IVnames;                 // IV Names.
