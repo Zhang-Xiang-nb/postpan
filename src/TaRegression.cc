@@ -845,6 +845,7 @@ void TaRegression::WriteSummary(){
     }
 
     fprintf(summary_txt, " \n --IV (um): \n" );
+      fprintf(summary_txt,"%-15s \t", "");
     for(UInt_t kIV=0; kIV<IVnames.size(); kIV++)
       fprintf(summary_txt,"%-15s \t", IVnames[kIV].Data());
     fprintf(summary_txt," \n");
@@ -884,7 +885,7 @@ void TaRegression::WriteSummary(){
     for(UInt_t kDV=0;kDV<DVnames.size();kDV++){
       fprintf(summary_txt,"%-15s \t", DVnames[kDV].Data());
       for(UInt_t kIV=0;kIV<IVnames.size();kIV++)
-    	fprintf(summary_txt,"%-15.2f \t",(Slope[kDV][kIV]*IV_rms[kIV])/(ppm/um));
+    	fprintf(summary_txt,"%-15.2f \t",(Slope[kDV][kIV]*IV_rms[kIV])/ppm);
       fprintf(summary_txt," \n");
     }
   }  // End of Mini Run loop
