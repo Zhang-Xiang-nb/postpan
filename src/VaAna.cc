@@ -79,10 +79,11 @@ Int_t VaAna::Init(TaInput& input) {
   }
 
   // Open the results file.
-  fTxtOut = new TaOResultsFile ("redana",
-				run_seg,
-				theAnaType,
-				fInput->GetNameStem());
+  if(theAnaType=="dither")
+    fTxtOut = new TaOResultsFile ("redana",
+				  run_seg,
+				  theAnaType,
+				  fInput->GetNameStem());
 
 
   return 0;

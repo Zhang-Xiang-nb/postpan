@@ -162,7 +162,7 @@ void TaConfFile::ParseLine(vector <string> line) {
     if(line.size()==3) {
       if(line[2] == "usecuts") {
 	usecuts=kTRUE;
-      } else if(line[2]=="usepairs") {
+      } else if(line[2]=="use-pattern") {
 	usecuts=kFALSE;
       }
     } else {

@@ -14,6 +14,7 @@
 #include "TTree.h"
 #include "TLeaf.h"
 #include "TEventList.h"
+#include "TVectorD.h"
 #include "TaConfFile.hh"
 #include "TaInput.hh"
 #include "TaStatistics.hh"
@@ -21,7 +22,6 @@
 #include "TaOResultsFile.hh"
 
 ClassImp(TaRegression);
-ClassImp(TaRootRegDef);
 
 // Constructors/destructors/operators
 
@@ -68,15 +68,14 @@ TaRegression::Init (TaInput& input)
   vector <TLeaf*> leaf_dvmon;
   vector <TLeaf*> leaf_ivmon;
   vector <TLeaf*> leaf_cut;
-  //  TLeaf* leaf_evnum;
   
-  // Load up the variable names
+  // load up the variable names
   IVnames = fInput->GetConfig().GetIVNames();
   DVnames = fInput->GetConfig().GetDVNames();
   PanCuts = fInput->GetConfig().GetPanCuts();
 
-  Int_t ev[2];
-  // fPairTree->SetBranchAddress("evt_ev_num",ev);
+  Double_t pattern_number;
+  fPairTree->SetBranchAddress("pattern_number",&pattern_number);
 
   // Get the DV leafs and check if they exist in the Tree.
   for(UInt_t i=0; i<DVnames.size(); i++) {
@@ -157,7 +156,6 @@ TaRegression::Init (TaInput& input)
   IVeventvector.clear();
   for(UInt_t ient = 0; ient<TotEvents; ient++) {
     fPairTree->GetEntry(ient);
-    //    ev = leaf_evnum->GetValue();
     for (UInt_t icut = 0; icut<PanCuts.size(); icut++) {
       Double_t current = leaf_cut[icut]->GetValue();
       CUTeventvector.push_back(current);
@@ -174,8 +172,9 @@ TaRegression::Init (TaInput& input)
     DVEntries.push_back(DVeventvector);
     DVEntriesOrig.push_back(DVeventvector);
     IVEntries.push_back(IVeventvector);
-    LEvEntries.push_back( (ev[0]>ev[1]) ? ev[1] : ev[0] );
-    HEvEntries.push_back( (ev[0]>ev[1]) ? ev[0] : ev[1] );
+
+    pattern_entries.push_back( pattern_number);
+
     CUTeventvector.clear();
     DVeventvector.clear();
     IVeventvector.clear();
@@ -304,7 +303,6 @@ TaRegression::MatrixInit ()
     cout << "Minirun unspecified or zero." 
 	 <<"  Generating result for entire run." << endl;
     minirange.push_back(make_pair(0,TotEvents));
-    minirangeEv.push_back(make_pair(LEvEntries[0],HEvEntries[TotEvents-1]));
     for(UInt_t i=0;i<TotEvents;i++)
       minirun.push_back(0);
   }
@@ -322,7 +320,6 @@ TaRegression::MatrixInit ()
 	   << " is less than this." << endl
 	   <<"   Generating result for entire run." << endl;
       minirange.push_back(make_pair(0,TotEvents));
-      minirangeEv.push_back(make_pair(LEvEntries[0],HEvEntries[TotEvents-1]));
       for(UInt_t i=0;i<TotEvents;i++)
 	minirun.push_back(0);
     } else {
@@ -332,14 +329,10 @@ TaRegression::MatrixInit ()
 	for(UInt_t i = 0; i<NumMiniruns; i++) {
 	  minirange.push_back(make_pair(i*PairsPerMinirun,
 					(i+1)*PairsPerMinirun));
-	  minirangeEv.push_back(make_pair(LEvEntries[i*PairsPerMinirun],
-					  HEvEntries[(i+1)*PairsPerMinirun]));
 	}
 	if(minirange[NumMiniruns-1].second<TotEvents) {
 	  minirange.push_back(make_pair(minirange[NumMiniruns-1].second,
 					TotEvents));
-	  minirangeEv.push_back(make_pair(LEvEntries[minirange[NumMiniruns-1].second],
-					  HEvEntries[TotEvents-1]));
 	}
 	// Fill the minirun vector using the defined ranges
 	for (UInt_t imini = 0; imini<minirange.size(); imini++) {
@@ -358,8 +351,6 @@ TaRegression::MatrixInit ()
 	  minirun.push_back(imini);
 	  if(ncount==PairsPerMinirun) {
 	    minirange.push_back(make_pair(startcount,iev));
-	    minirangeEv.push_back(make_pair(LEvEntries[startcount],
-					    HEvEntries[iev]));
 	    startcount=0; ncount=0; imini++;
 	  }
 	}
@@ -369,9 +360,6 @@ TaRegression::MatrixInit ()
 	  minirange.pop_back();
 	  minirange.push_back(make_pair(lastmin.first,
 					TotEvents-1));
-	  minirangeEv.pop_back();
-	  minirangeEv.push_back(make_pair(LEvEntries[lastmin.first],
-					  HEvEntries[TotEvents-1]));
 	  for(UInt_t i=lastmin.first; i<TotEvents; i++) {
 	    minirun[i] = imini-1;
 	  }
@@ -525,12 +513,17 @@ void TaRegression::ProcessMatrix () {
       IVStats->Update(currentIV);
       goodcount++;
     }
-    WriteStats(imini,kFALSE);
     if (goodcount == 0) {
       cout << "  Zero pairs passing defined PAN cuts. " 
 	   << "Proceeding to next minirun." << endl;
       // Store empty coefficients
       vector < vector <Double_t> > mini_coeff; // this minirun
+      vector <Double_t> dummyDV_zero; // this minirun
+      vector <Double_t> dummyIV_zero; // this minirun
+      for(UInt_t iDV=0; iDV<DVnames.size(); iDV++)
+	dummyDV_zero.push_back(0.0);
+      for(UInt_t iIV=0; iIV<IVnames.size(); iIV++) 
+	dummyIV_zero.push_back(0.0);
       for(UInt_t iDV=0; iDV<DVnames.size(); iDV++) {
 	vector <Double_t> dv_coeff; // this DV
 	for(UInt_t iIV=0; iIV<IVnames.size(); iIV++) {
@@ -540,8 +533,18 @@ void TaRegression::ProcessMatrix () {
       }
       mCoeff.push_back(mini_coeff);
       mErrCoeff.push_back(mini_coeff);
-      WriteSlopes(imini);
-      WriteStats(imini,kTRUE);
+
+      mIV_mean.push_back(dummyIV_zero);
+      mIV_rms.push_back(dummyIV_zero);
+      mIV_err.push_back(dummyIV_zero);
+      
+      mDV_raw_mean.push_back(dummyDV_zero);
+      mDV_raw_rms.push_back(dummyDV_zero);
+      mDV_raw_err.push_back(dummyDV_zero);
+
+      mDV_reg_mean.push_back(dummyDV_zero);
+      mDV_reg_rms.push_back(dummyDV_zero);
+      mDV_reg_err.push_back(dummyDV_zero);
       continue;
     }
 
@@ -594,6 +597,12 @@ void TaRegression::ProcessMatrix () {
       cout << "\tX Matrix is singular.  Proceeding to next minirun" << endl;
       // Store empty coefficients
       vector < vector <Double_t> > mini_coeff; // this minirun
+      vector <Double_t> dummyDV_zero; // this minirun
+      vector <Double_t> dummyIV_zero; // this minirun
+      for(UInt_t iDV=0; iDV<DVnames.size(); iDV++)
+	dummyDV_zero.push_back(0.0);
+      for(UInt_t iIV=0; iIV<IVnames.size(); iIV++) 
+	dummyIV_zero.push_back(0.0);
       for(UInt_t iDV=0; iDV<DVnames.size(); iDV++) {
 	vector <Double_t> dv_coeff; // this DV
 	for(UInt_t iIV=0; iIV<IVnames.size(); iIV++) {
@@ -603,8 +612,19 @@ void TaRegression::ProcessMatrix () {
       }
       mCoeff.push_back(mini_coeff);
       mErrCoeff.push_back(mini_coeff);
-      WriteSlopes(imini);
-      WriteStats(imini,kTRUE);
+
+      mIV_mean.push_back(dummyIV_zero);
+      mIV_rms.push_back(dummyIV_zero);
+      mIV_err.push_back(dummyIV_zero);
+      
+      mDV_raw_mean.push_back(dummyDV_zero);
+      mDV_raw_rms.push_back(dummyDV_zero);
+      mDV_raw_err.push_back(dummyDV_zero);
+
+      mDV_reg_mean.push_back(dummyDV_zero);
+      mDV_reg_rms.push_back(dummyDV_zero);
+      mDV_reg_err.push_back(dummyDV_zero);
+
       continue;
     }
 #ifdef NOISY2
@@ -673,6 +693,30 @@ void TaRegression::ProcessMatrix () {
     mCoeff.push_back(mini_coeff);
     mErrCoeff.push_back(mini_Errcoeff);
 
+    // collecting raw statistics
+    vector<Double_t> dv_raw_mean;
+    vector<Double_t> dv_raw_rms;
+    vector<Double_t> dv_raw_err;
+    for(UInt_t iDV=0; iDV<DVnames.size(); iDV++){
+      dv_raw_mean.push_back(DVStats->Mean(iDV));
+      dv_raw_rms.push_back(DVStats->DataRMS(iDV));
+      dv_raw_err.push_back(DVStats->MeanErr(iDV));
+    }
+    mDV_raw_mean.push_back(dv_raw_mean);
+    mDV_raw_rms.push_back(dv_raw_rms);
+    mDV_raw_err.push_back(dv_raw_err);
+
+    vector<Double_t> iv_mean;
+    vector<Double_t> iv_rms;
+    vector<Double_t> iv_err;
+    for(UInt_t iIV=0; iIV<IVnames.size(); iIV++) {
+      iv_mean.push_back(IVStats->Mean(iIV));
+      iv_rms.push_back(IVStats->DataRMS(iIV));
+      iv_err.push_back(IVStats->MeanErr(iIV));
+    }
+    mIV_mean.push_back(iv_mean);
+    mIV_rms.push_back(iv_rms);
+    mIV_err.push_back(iv_err);
 
     // Regress the IVs from the DVs
     for(UInt_t iev = minirange[imini].first; 
@@ -702,7 +746,20 @@ void TaRegression::ProcessMatrix () {
       current = DVEntries[iev];
       DVStats->Update(current);
     }
-    
+
+    // collecting regressed statistics
+    vector<Double_t> dv_reg_mean;
+    vector<Double_t> dv_reg_rms;
+    vector<Double_t> dv_reg_err;
+    for(UInt_t iDV=0; iDV<DVnames.size(); iDV++){
+      dv_reg_mean.push_back(DVStats->Mean(iDV));
+      dv_reg_rms.push_back(DVStats->DataRMS(iDV));
+      dv_reg_err.push_back(DVStats->MeanErr(iDV));
+    }
+    mDV_reg_mean.push_back(dv_reg_mean);
+    mDV_reg_rms.push_back(dv_reg_rms);
+    mDV_reg_err.push_back(dv_reg_err);
+
 #ifdef NOISY
     cout << "  After Regression" << endl;
     for (UInt_t iDV = 0; iDV<DVnames.size(); iDV++) {
@@ -723,67 +780,124 @@ void TaRegression::ProcessMatrix () {
 	     << endl;
       }
     }
-    cout << "\n----------------- END OF Summary--------------------" << endl;
+    cout << "\n----------------- END OF Prompt Summary--------------------" << endl;
 #endif
-    WriteStats(imini,kTRUE);
-    WriteSlopes(imini);
+
   } // End of minirun FOR-loop
+  WriteSummary();
+  FillStats();
   FillTree();
 }
 
-void TaRegression::WriteStats(UInt_t imini, Bool_t regressed) {
-  // Write out the statistics for the DV
-  if(!regressed) {
-    (*fTxtOut) << "# Dependent variable statistics for minirun " << imini 
-	       << " ===================" << endl;  
-  }
-  for (UInt_t iDV = 0; iDV < DVnames.size(); iDV++) {
-    TString regname = "minirun_";
-    regname += imini;
-    if(regressed) regname += "_regressed";
-    regname += "_";
-    regname += DVnames[iDV];
-    regname += "_";
-    fTxtOut->WriteNextLine (regname + "mean",
-			    DVStats->Mean(iDV),
-			    DVStats->MeanErr(iDV),
-			    minirange[imini].first,
-			    minirange[imini].second-1,"","");
-    fTxtOut->WriteNextLine (regname + "RMS",
-			    DVStats->DataRMS(iDV),
-			    0,
-			    minirange[imini].first,
-			    minirange[imini].second-1,"","");
-    fTxtOut->WriteNextLine (regname + "Neff",
-			    DVStats->Neff(iDV),
-			    0,
-			    minirange[imini].first,
-			    minirange[imini].second-1,"","");
-  }
+void TaRegression::WriteSummary(){
+  // Adapted from my GetBeamNoise.C Macros -- Tao Y
+  TString name_stem = fInput->GetNameStem();
+  TString run_seg = fInput->GetRunNumberStr(); 
+  run_seg.ReplaceAll('.','_');
+  TString output_filename = Form("./results/%s%s_postpan_summary.txt",
+				 name_stem.Data(),run_seg.Data());
+  cout << "Output Test Summary: "
+       << output_filename << endl;
+    
+  FILE *summary_txt = fopen(output_filename.Data(), "w");
+
+  Int_t nMinirun = minirange.size();
+
+  double ppm = 1e-6;
+  double um = 1e-3;
+
+  for(int kMinirun=0; kMinirun<nMinirun;kMinirun++){
+
+    vector<Double_t> IV_mean = mIV_mean[kMinirun];
+    vector<Double_t> IV_rms =  mIV_rms[kMinirun];
+    vector<Double_t> IV_err = mIV_err[kMinirun];
+
+    vector<Double_t> DV_raw_mean = mDV_raw_mean[kMinirun];
+    vector<Double_t> DV_raw_rms = mDV_raw_rms[kMinirun];
+    vector<Double_t> DV_raw_err = mDV_raw_err[kMinirun];
+
+    vector<Double_t> DV_reg_mean = mDV_reg_mean[kMinirun];
+    vector<Double_t> DV_reg_rms = mDV_reg_rms[kMinirun];
+    vector<Double_t> DV_reg_err = mDV_reg_err[kMinirun];
+
+    vector<vector<Double_t> > Slope = mCoeff[kMinirun];
+    vector<vector<Double_t> > SlopeErr = mErrCoeff[kMinirun];
+
+    if(kMinirun>0)
+      fprintf(summary_txt,"\n\n\n\n\n\n\n\n\n"); 
+    fprintf(summary_txt, " == Mini-run: %d == \n", kMinirun);
+    fprintf(summary_txt, 
+    	    "%-12s\t%-12s\t%-12s\t%-20s\t%-15s\t%-15s\t%-12s\n",
+    	    "",
+    	    "Raw Mean+/-Err(ppm)","RMS(ppm)",
+    	    "Regressed Mean+/-Err(ppm)","RMS (ppm)", 
+    	    "Correction on Mean(ppm)","RMS of BPM Coherent Sum(ppm)");
+
+    for(UInt_t kDV=0;kDV<DVnames.size();kDV++){
+      double CoherentNoise = sqrt( DV_raw_rms[kDV]*DV_raw_rms[kDV]
+    				   - DV_reg_rms[kDV]*DV_reg_rms[kDV]);
+      fprintf(summary_txt, 
+    	      "%-12s\t%-3.2f+/-%-9.2f\t%-12.2f\t%-3.2f+/-%-17.2f\t%-17.2f\t%-15.2f\t%-12.2f\n",
+    	      DVnames[kDV].Data(), 
+    	      DV_raw_mean[kDV]/ppm,DV_raw_err[kDV]/ppm,DV_raw_rms[kDV]/ppm, 
+    	      DV_reg_mean[kDV]/ppm,DV_reg_err[kDV]/ppm,DV_reg_rms[kDV]/ppm, 
+    	      DV_raw_mean[kDV]/ppm-DV_reg_mean[kDV]/ppm,CoherentNoise/ppm);
+    }
+
+    fprintf(summary_txt, " \n --IV (um): \n" );
+      fprintf(summary_txt,"%-15s \t", "");
+    for(UInt_t kIV=0; kIV<IVnames.size(); kIV++)
+      fprintf(summary_txt,"%-15s \t", IVnames[kIV].Data());
+    fprintf(summary_txt," \n");
+
+    fprintf(summary_txt,"%-15s \t", "Mean+/-Err(um)");
+    for(UInt_t kIV=0; kIV<IVnames.size(); kIV++)
+     fprintf(summary_txt,"%-3.2f+/-%-12.2f \t", 
+    	      IV_mean[kIV]/um,IV_err[kIV]/um);
+    fprintf(summary_txt," \n");
+
+    fprintf(summary_txt,"%-15s \t", "RMS(um)");
+    for(UInt_t kIV=0; kIV<IVnames.size(); kIV++)
+      fprintf(summary_txt,"%-15.2f \t", IV_rms[kIV]/um);
+    fprintf(summary_txt," \n");
+
+    fprintf(summary_txt, " \n --Slope (ppm/um): \n");
+    fprintf(summary_txt, " %-15s\t ","" );
+    for(UInt_t kIV=0; kIV<IVnames.size(); kIV++)
+      fprintf(summary_txt,"%-15s \t", IVnames[kIV].Data());
+    fprintf(summary_txt," \n");
+
+    for(UInt_t kDV=0;kDV<DVnames.size();kDV++){
+      fprintf(summary_txt,"%-15s \t", DVnames[kDV].Data());
+      for(UInt_t kIV=0;kIV<IVnames.size();kIV++)
+    	fprintf(summary_txt,"%-.2f +/- %-9.2f\t", 
+    		Slope[kDV][kIV]/(ppm/um),
+    		SlopeErr[kDV][kIV]/(ppm/um));
+      fprintf(summary_txt," \n");
+    }
+
+    fprintf(summary_txt, "\n --Noise (ppm): \n");
+    fprintf(summary_txt, " %-15s\t ","" );
+    for(UInt_t kIV=0; kIV<IVnames.size(); kIV++)
+      fprintf(summary_txt,"%-15s \t", IVnames[kIV].Data());
+    fprintf(summary_txt," \n");
+
+    for(UInt_t kDV=0;kDV<DVnames.size();kDV++){
+      fprintf(summary_txt,"%-15s \t", DVnames[kDV].Data());
+      for(UInt_t kIV=0;kIV<IVnames.size();kIV++)
+    	fprintf(summary_txt,"%-15.2f \t",(Slope[kDV][kIV]*IV_rms[kIV])/ppm);
+      fprintf(summary_txt," \n");
+    }
+  }  // End of Mini Run loop
+  fclose(summary_txt);
 }
 
-void TaRegression::WriteSlopes(UInt_t imini) {
-  // Write out the matrix regression slopes to the results file.
-
-  (*fTxtOut) << "# Minirun slopes for minirun " << imini 
-	     << " ===================" << endl;  
-  for (UInt_t iDV = 0; iDV < DVnames.size(); iDV++) {
-    TString slopename = "minirun_";
-    slopename += imini;
-    slopename += "_";
-    slopename += DVnames[iDV];
-    slopename += "_vs_";
-    for (UInt_t iIV = 0; iIV < IVnames.size(); iIV++) {
-      TString name_end = slopename;
-      name_end += IVnames[iIV];
-      name_end += "_slope";
-      fTxtOut->WriteNextLine (name_end, 
-			      mCoeff[imini][iDV][iIV], 
-			      mErrCoeff[imini][iDV][iIV], 
-			      minirange[imini].first, 
-			      minirange[imini].second-1, "", "");
-    }
-  }    
+void TaRegression::FillStats(){
+  TVectorD MyStat(1);
+  MyStat(0)=nGoodEvents;
+  fRedFile->WriteObject(&MyStat,"MyStat");
+  fRedFile->WriteObject(&IVnames,"IVNames");
+  fRedFile->WriteObject(&DVnames,"DVNames"); 
 }
 
 void TaRegression::FillTree() {
@@ -794,8 +908,8 @@ void TaRegression::FillTree() {
   cout << "Filling reg tree with regressed variables" << endl;
 
   TTree reg("reg","regression tree");
-  TTree regcoeffs("regcoeffs","regression coefficients tree");
-  regcoeffs.SetMarkerStyle(20);
+  TTree regrun("mini","mini run stats tree ");
+  regrun.SetMarkerStyle(20);
   Double_t iv[IVnames.size()], dv[DVnames.size()], dvorig[DVnames.size()],
     cuts;
   Int_t ev,first_ev,last_ev;
@@ -804,11 +918,21 @@ void TaRegression::FillTree() {
   Double_t Err_coeff[DVnames.size()][IVnames.size()];
   TString buff, buff2;
 
+  typedef struct {Double_t mean,err,rms;} DATASET;
+  DATASET DV_raw_dataset[DVnames.size()];
+  DATASET DV_reg_dataset[DVnames.size()];
+  DATASET IV_dataset[IVnames.size()];
+
+  typedef struct {Double_t ppm,um;} UNIT;
+  UNIT parity_unit;
+  parity_unit.ppm = 1e-6;
+  parity_unit.um = 1e-3;
+
   reg.Branch("ok_cut",&cuts,"ok_cut/D");
-  reg.Branch("reg_mini_first_ev",&first_ev,"reg_mini_first_ev/I");
-  reg.Branch("reg_mini_last_ev",&last_ev,"reg_mini_last_ev/I");
-  regcoeffs.Branch("reg_mini_first_ev",&first_ev,"reg_mini_first_ev/I");
-  regcoeffs.Branch("reg_mini_last_ev",&last_ev,"reg_mini_last_ev/I");
+  reg.Branch("pattern_begin",&first_ev,"pattern_begin/I");
+  reg.Branch("pattern_end",&last_ev,"pattern_end/I");
+  regrun.Branch("pattern_begin",&first_ev,"pattern_begin/I");
+  regrun.Branch("pattern_end",&last_ev,"pattern_end/I");
   
   for(UInt_t k = 0; k<IVnames.size(); k++) {
     buff = IVnames[k];
@@ -834,7 +958,7 @@ void TaRegression::FillTree() {
 //      (fInput->GetConfig().GetRegressMinirun() != 0)) {
   if (fInput->GetConfig().GetRegressType() == "matrix") {
     reg.Branch("minirun",&mini,"minirun/I");
-    regcoeffs.Branch("minirun",&mini,"minirun/I");
+    regrun.Branch("minirun",&mini,"minirun/I");
     TString Err_coeffBuff;
     TString coeffBuff = "coeff[";
     coeffBuff += DVnames.size();
@@ -844,16 +968,25 @@ void TaRegression::FillTree() {
     Err_coeffBuff = coeffBuff;
     Err_coeffBuff.Prepend("err_");
 //     cout << coeffBuff << endl;
-    regcoeffs.Branch("coeff",&coeff,coeffBuff);
-    regcoeffs.Branch("err_coeff",&Err_coeff,Err_coeffBuff);
-    rootdef = new TaRootRegDef();
-    for (UInt_t i=0; i<IVnames.size(); i++) {
-      rootdef->PutIV(IVnames[i]);
+    regrun.Branch("coeff",&coeff,coeffBuff);
+    regrun.Branch("err_coeff",&Err_coeff,Err_coeffBuff);
+    regrun.Branch("unit",&parity_unit,"ppm/D:um");
+
+    for(UInt_t iDV=0;iDV<DVnames.size();iDV++){
+      regrun.Branch(DVnames[iDV],
+		    &(DV_raw_dataset[iDV]),
+		    "mean/D:err:rms");
+      TString name_buff =DVnames[iDV];
+      name_buff = name_buff.ReplaceAll("asym","reg_asym");
+      regrun.Branch(name_buff,
+		    &(DV_reg_dataset[iDV]),
+		    "mean/D:err:rms");
     }
-    for (UInt_t i=0; i<DVnames.size(); i++) {
-      rootdef->PutDV(DVnames[i]);
+    for(UInt_t iIV=0;iIV<IVnames.size();iIV++){
+      regrun.Branch(IVnames[iIV],
+		    &(IV_dataset[iIV]),
+		    "mean/D:err:rms");
     }
-    rootdef->Write();
   }
 
   // fill the tree (pairs first, then slopes)
@@ -872,24 +1005,38 @@ void TaRegression::FillTree() {
     }
     ev = i;
     cuts = GoodEvents[i];
-    first_ev = minirangeEv[mini].first;
-    last_ev = minirangeEv[mini].second;
+    first_ev = minirange[mini].first;
+    last_ev = minirange[mini].second;
     reg.Fill();
   }
   reg.Write();
 
   if (fInput->GetConfig().GetRegressType() == "matrix") {
-    for(UInt_t imini=0; imini<minirange.size(); imini++) {
-    mini = imini;
-    first_ev = minirangeEv[imini].first;
-    last_ev = minirangeEv[imini].second;
-    for(UInt_t idv=0;idv<DVnames.size();idv++) 
-      for(UInt_t iiv=0;iiv<IVnames.size();iiv++) {
-	coeff[idv][iiv] = mCoeff[imini][idv][iiv];
-	Err_coeff[idv][iiv] = mErrCoeff[imini][idv][iiv];	  
+    for(UInt_t imini=0; imini<minirange.size(); imini++){
+      mini = imini;
+      first_ev = minirange[imini].first;
+      last_ev = minirange[imini].second;
+      for(UInt_t idv=0;idv<DVnames.size();idv++)
+	for(UInt_t iiv=0;iiv<IVnames.size();iiv++) {
+	  coeff[idv][iiv] = mCoeff[imini][idv][iiv];
+	  Err_coeff[idv][iiv] = mErrCoeff[imini][idv][iiv];	  
+	}// End of IV loop
+      // End of DV loop
+      for(UInt_t idv=0;idv<DVnames.size();idv++){
+	DV_raw_dataset[idv].mean = mDV_raw_mean[imini][idv];
+	DV_raw_dataset[idv].err = mDV_raw_err[imini][idv];
+	DV_raw_dataset[idv].rms = mDV_raw_rms[imini][idv];
+	DV_reg_dataset[idv].mean = mDV_reg_mean[imini][idv];
+	DV_reg_dataset[idv].err = mDV_reg_err[imini][idv];
+	DV_reg_dataset[idv].rms = mDV_reg_rms[imini][idv];
       }
-    regcoeffs.Fill();
+      for(UInt_t iiv=0;iiv<IVnames.size();iiv++){
+	IV_dataset[iiv].mean = mIV_mean[imini][iiv];
+	IV_dataset[iiv].err = mIV_err[imini][iiv];
+	IV_dataset[iiv].rms = mIV_rms[imini][iiv];
+      }
+      regrun.Fill();
+      }
     }
-  }
-  regcoeffs.Write();
+  regrun.Write();
 }

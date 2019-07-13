@@ -31,7 +31,9 @@ int main(int argc, char **argv)
   char *confFileName = 0;
 
   cout << endl;
-  cout << "Regression and Dithering Analysis - B. Moffit and K. Paschke " 
+  cout << "Regression and Dithering Analysis - B. Moffit and K. Paschke " << endl;
+  cout << " 		Adapted for PREX-II by Tao Ye "  << endl;
+  cout << " 		Last modified: July 2019 " 
        << endl;
 
   if(argc > 5) {

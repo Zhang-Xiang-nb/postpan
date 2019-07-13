@@ -19,76 +19,6 @@ class TFile;
 class TTree;
 class TaInput;
 class TaStatistics;
-
-class TaRootRegDef : public TObject {
-  // Class to define variables within the reg Tree 
-  // This is then stored in the root file
-public:
-  TaRootRegDef() {}
-  ~TaRootRegDef() {}
-  void PutIV(TString name) { IVvarnames.push_back(name); }
-  void PutDV(TString name) { DVvarnames.push_back(name); }
-  UInt_t GetIVNumber() {
-    return IVvarnames.size();
-  }
-  UInt_t GetDVNumber() {
-    return DVvarnames.size();
-  }
-  TString GetIVName(Int_t index) {
-    return IVvarnames[index];
-  }
-  TString GetDVName(Int_t index) {
-    return DVvarnames[index];
-  }
-  Int_t GetIVIndex(TString name) {
-    for (UInt_t i=0; i<IVvarnames.size(); i++) {
-      if (name == IVvarnames[i]) return i;
-    }
-    return -1;
-  }
-  Int_t GetDVIndex(TString name) {
-    for (UInt_t i=0; i<DVvarnames.size(); i++) {
-      if (name == DVvarnames[i]) return i;
-    }
-    return -1;
-  }
-  void Print() {
-    //    cout << "TaRootRegDef::Print()" << endl;
-    for (UInt_t i=0; i<IVvarnames.size(); i++) {
-      cout << "IV Index " << i << ": " << IVvarnames[i] << endl;
-    }
-    for (UInt_t i=0; i<DVvarnames.size(); i++) {
-      cout << "DV Index " << i << ": " << DVvarnames[i] << endl;
-    }
-  }
-  void Usage() {
-    // Prints out some usage info
-    cout << endl 
-	 << "TString TaRootRegDef::GetIVName(Int_t index) -" << endl
-	 << "  retrieves the Name of the Independent variable "
-	 << "stored at index.";
-    cout << endl << endl
-	 << "TString TaRootRegDef::GetDVName(Int_t index) -" << endl
-	 << "  retrieves the Name of the Dependent variable "
-	 << "stored at index.";
-    cout << endl << endl
-	 << "Int_t TaRootRegDef::GetIVIndex(TString name) -" << endl
-	 << "  retrieves the index of the Independent variable "
-	 << "stored with name.";
-    cout << endl << endl
-	 << "Int_t TaRootRegDef::GetDVIndex(TString name) -" << endl
-	 << "  retrieves the index of the Dependent variable "
-	 << "stored with name.";
-    cout << endl << endl;
-  }
-private:
-  vector <TString> IVvarnames;
-  vector <TString> DVvarnames;
-  
-  ClassDef(TaRootRegDef,1) // Class to define variables within reg tree
-    
-    };
-
 class TaRegression: public VaAna {
 
   //  RQ_OBJECT()
@@ -114,8 +44,8 @@ public:
   void ProcessLinear ();           // Linear Regression algorithm
   void ProcessMatrix ();           // Matrix Regression algorithm
   void FillTree();
-  void WriteStats(UInt_t,Bool_t);
-  void WriteSlopes(UInt_t);
+  void FillStats(); // to fRedFile
+  void WriteSummary(); // Printing Summary Outputs
 
 private:
 
@@ -136,8 +66,9 @@ private:
   vector < vector<Double_t> > DVEntriesOrig; // DV Entries in pair tree
 
   vector < vector<Double_t> > PanCutEntries; // Pan Cut Entries in pair tree
-  vector <Int_t> LEvEntries;              // evt_ev_num (low) for entries
-  vector <Int_t> HEvEntries;              // evt_ev_num (high) for entries
+  // vector <Int_t> LEvEntries;              // evt_ev_num (low) for entries
+  // vector <Int_t> HEvEntries;              // evt_ev_num (high) for entries
+  vector< Double_t> pattern_entries;
   vector <Bool_t> GoodEvents;                // Events that Pass all Cuts
   UInt_t nGoodEvents;                        // number of Good Events
 
@@ -146,6 +77,19 @@ private:
   vector < vector < vector <Double_t> > > mCoeff;
   vector < vector < vector <Double_t> > > mErrCoeff;
 
+  vector<vector<Double_t> > mIV_mean;
+  vector<vector<Double_t> > mIV_rms;
+  vector<vector<Double_t> > mIV_err;
+
+  vector<vector<Double_t> > mDV_raw_mean;
+  vector<vector<Double_t> > mDV_raw_rms;
+  vector<vector<Double_t> > mDV_raw_err;
+
+  vector<vector<Double_t> > mDV_reg_mean;
+  vector<vector<Double_t> > mDV_reg_rms;
+  vector<vector<Double_t> > mDV_reg_err;
+
+  
   // Vectors for IV and DV names
   vector <TString> DVnames;                 // DV Names.
   vector <TString> IVnames;                 // IV Names.
@@ -161,7 +105,5 @@ private:
                                               // Second is event high.
   // Vector indicator for minirun
   vector <UInt_t> minirun;
-
-  TaRootRegDef *rootdef;
 
 };  
