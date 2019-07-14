@@ -959,6 +959,10 @@ void TaRegression::FillTree() {
   if (fInput->GetConfig().GetRegressType() == "matrix") {
     reg.Branch("minirun",&mini,"minirun/I");
     regrun.Branch("minirun",&mini,"minirun/I");
+    Int_t run_number = fInput->GetRunNumber();
+    Int_t seg_number = fInput->GetSegNumber();
+    regrun.Branch("seg_number",&seg_number,"seg_number/I");
+    regrun.Branch("run_number",&run_number,"run_nubmer/I");
     TString Err_coeffBuff;
     TString coeffBuff = "coeff[";
     coeffBuff += DVnames.size();

@@ -88,7 +88,10 @@ Int_t TaInput::Init(string runfile_str) {
   TString run_num = runfile(first_t,length_t);
   fRunNumberStr = run_num;
   fRunNumber = atoi(run_num);
-
+  length_t = run_num.Length();
+  first_t = run_num.Last('.')+1;
+  TString fSegNumberStr = run_num(first_t,length_t-1);
+  fSegNumber = atoi(fSegNumberStr);
   first_t = runfile.Last('/')+1;
   last_t = runfile.First('_');
   length_t = last_t - first_t+1;

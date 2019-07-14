@@ -33,6 +33,7 @@ public:
   TaConfFile& GetConfig() const { return *fConfig; };
   TFile& GetPanFile() const { return *fPanFile; };
   Int_t GetRunNumber() { return fRunNumber; };
+  Int_t GetSegNumber() { return fSegNumber; };
   TString GetRunNumberStr() { return fRunNumberStr; };
   TString GetNameStem(){return fNameStem;};
   TTree& GetRawTree() const { return *fRawTree; };
@@ -44,6 +45,7 @@ private:
   TTree*       fPairTree;
   TaConfFile*  fConfig;
   Int_t        fRunNumber;
+  Int_t        fSegNumber;
   TString      fRunNumberStr;
   TString      fConfFileName;
   TString      fNameStem;
