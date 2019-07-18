@@ -12,6 +12,7 @@
 #include "TaRegression.hh"
 #include "TFile.h"
 #include "TTree.h"
+#include "TH1D.h"
 #include "TLeaf.h"
 #include "TEventList.h"
 #include "TVectorD.h"
@@ -717,7 +718,6 @@ void TaRegression::ProcessMatrix () {
     mIV_mean.push_back(iv_mean);
     mIV_rms.push_back(iv_rms);
     mIV_err.push_back(iv_err);
-
     // Regress the IVs from the DVs
     for(UInt_t iev = minirange[imini].first; 
 	iev<minirange[imini].second; iev++) {
@@ -784,13 +784,16 @@ void TaRegression::ProcessMatrix () {
 #endif
 
   } // End of minirun FOR-loop
-  WriteSummary();
   FillStats();
   FillTree();
+
+  InitSummary();
+  if(minirange.size()>1)
+    WriteRunSummary();
+  WriteMiniSummary();
 }
 
-void TaRegression::WriteSummary(){
-  // Adapted from my GetBeamNoise.C Macros -- Tao Y
+void TaRegression::InitSummary(){
   TString name_stem = fInput->GetNameStem();
   TString run_seg = fInput->GetRunNumberStr(); 
   run_seg.ReplaceAll('.','_');
@@ -798,11 +801,55 @@ void TaRegression::WriteSummary(){
 				 name_stem.Data(),run_seg.Data());
   cout << "Output Test Summary: "
        << output_filename << endl;
-    
-  FILE *summary_txt = fopen(output_filename.Data(), "w");
+  summary_txt = fopen(output_filename.Data(), "w");
+}
 
+void TaRegression::WriteRunSummary(){
+
+  double ppm = 1e-6;
+  double um =  1e-3;
+
+  fprintf(summary_txt, " == Run Average Statistics == \n");
+  fprintf(summary_txt, 
+	  "%-12s\t%-12s\t%-12s\t%-20s\t%-15s\t%-15s\t%-12s\n",
+	  "",
+	  "Raw Mean+/-Err(ppm)","RMS(ppm)",
+	  "Regressed Mean+/-Err(ppm)","RMS (ppm)", 
+	  "Correction on Mean(ppm)","RMS of BPM Coherent Sum(ppm)");
+
+  for(UInt_t kDV=0;kDV<DVnames.size();kDV++){
+    double CoherentNoise = sqrt( gDV_raw_rms[kDV]*gDV_raw_rms[kDV]
+				 - gDV_reg_rms[kDV]*gDV_reg_rms[kDV]);
+    fprintf(summary_txt, 
+	    "%-12s\t%-3.2f+/-%-9.2f\t%-12.2f\t%-3.2f+/-%-17.2f\t%-17.2f\t%-15.2f\t%-12.2f\n",
+	    DVnames[kDV].Data(), 
+	    gDV_raw_mean[kDV]/ppm,gDV_raw_error[kDV]/ppm,gDV_raw_rms[kDV]/ppm, 
+	    gDV_reg_mean[kDV]/ppm,gDV_reg_error[kDV]/ppm,gDV_reg_rms[kDV]/ppm, 
+	    gDV_raw_mean[kDV]/ppm-gDV_reg_mean[kDV]/ppm,CoherentNoise/ppm);
+  }
+
+  fprintf(summary_txt, " \n --IV (um): \n" );
+  fprintf(summary_txt,"%-15s \t", "");
+  for(UInt_t kIV=0; kIV<IVnames.size(); kIV++)
+    fprintf(summary_txt,"%-15s \t", IVnames[kIV].Data());
+  fprintf(summary_txt," \n");
+
+  fprintf(summary_txt,"%-15s \t", "Mean+/-Err(um)");
+  for(UInt_t kIV=0; kIV<IVnames.size(); kIV++)
+    fprintf(summary_txt,"%-3.2f+/-%-12.2f \t", 
+	    gIV_mean[kIV]/um,gIV_error[kIV]/um);
+  fprintf(summary_txt," \n");
+
+  fprintf(summary_txt,"%-15s \t", "RMS(um)");
+  for(UInt_t kIV=0; kIV<IVnames.size(); kIV++)
+    fprintf(summary_txt,"%-15.2f \t", gIV_rms[kIV]/um);
+  fprintf(summary_txt," \n\n");
+  
+}
+
+void TaRegression::WriteMiniSummary(){
+  // Adapted from my GetBeamNoise.C Macros -- Tao Y
   Int_t nMinirun = minirange.size();
-
   double ppm = 1e-6;
   double um = 1e-3;
 
@@ -927,7 +974,6 @@ void TaRegression::FillTree() {
   UNIT parity_unit;
   parity_unit.ppm = 1e-6;
   parity_unit.um = 1e-3;
-
   reg.Branch("ok_cut",&cuts,"ok_cut/D");
   reg.Branch("pattern_begin",&first_ev,"pattern_begin/I");
   reg.Branch("pattern_end",&last_ev,"pattern_end/I");
@@ -1014,6 +1060,45 @@ void TaRegression::FillTree() {
     reg.Fill();
   }
   reg.Write();
+  TH1D* hstat_buff;
+  TCut goodCut = "ok_cut";
+  double mean_buff, rms_buff, error_buff, nentries_buff;
+  for(UInt_t idv=0; idv<DVnames.size();idv++){
+    reg.Draw(DVnames[idv],goodCut,"goff");
+    hstat_buff =(TH1D*)gDirectory->FindObject("htemp");
+    mean_buff = hstat_buff->GetMean();
+    rms_buff = hstat_buff->GetRMS();
+    nentries_buff = hstat_buff->GetEntries();
+    error_buff = rms_buff/sqrt(nentries_buff);
+    
+    gDV_raw_mean.push_back(mean_buff);
+    gDV_raw_rms.push_back(rms_buff);
+    gDV_raw_error.push_back(error_buff);
+
+    reg.Draw("reg_"+DVnames[idv],goodCut,"goff");
+    hstat_buff =(TH1D*)gDirectory->FindObject("htemp");
+    mean_buff = hstat_buff->GetMean();
+    rms_buff = hstat_buff->GetRMS();
+    nentries_buff = hstat_buff->GetEntries();
+    error_buff = rms_buff/sqrt(nentries_buff);
+    
+    gDV_reg_mean.push_back(mean_buff);
+    gDV_reg_rms.push_back(rms_buff);
+    gDV_reg_error.push_back(error_buff);
+
+  }
+  for(UInt_t iiv=0; iiv<IVnames.size();iiv++){
+    reg.Draw(IVnames[iiv],goodCut,"goff");
+    hstat_buff =(TH1D*)gDirectory->FindObject("htemp");
+    mean_buff = hstat_buff->GetMean();
+    rms_buff = hstat_buff->GetRMS();
+    nentries_buff = hstat_buff->GetEntries();
+    error_buff = rms_buff/sqrt(nentries_buff);
+    
+    gIV_mean.push_back(mean_buff);
+    gIV_rms.push_back(rms_buff);
+    gIV_error.push_back(error_buff);
+  }
 
   if (fInput->GetConfig().GetRegressType() == "matrix") {
     for(UInt_t imini=0; imini<minirange.size(); imini++){
@@ -1040,7 +1125,8 @@ void TaRegression::FillTree() {
 	IV_dataset[iiv].rms = mIV_rms[imini][iiv];
       }
       regrun.Fill();
-      }
     }
+  }
+  
   regrun.Write();
 }

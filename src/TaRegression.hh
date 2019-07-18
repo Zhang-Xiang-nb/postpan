@@ -45,8 +45,9 @@ public:
   void ProcessMatrix ();           // Matrix Regression algorithm
   void FillTree();
   void FillStats(); // to fRedFile
-  void WriteSummary(); // Printing Summary Outputs
-
+  void WriteMiniSummary(); // Printing Mini Runs Summary Outputs
+  void WriteRunSummary();  // Print Grand Run Mini Summary
+  void InitSummary();
 private:
 
   // Private member functions
@@ -105,5 +106,16 @@ private:
                                               // Second is event high.
   // Vector indicator for minirun
   vector <UInt_t> minirun;
+  FILE* summary_txt;
+  vector< Double_t > gDV_raw_mean;
+  vector< Double_t > gDV_raw_error;
+  vector< Double_t > gDV_raw_rms;
 
+  vector< Double_t > gDV_reg_mean;
+  vector< Double_t > gDV_reg_error;
+  vector< Double_t > gDV_reg_rms;
+
+  vector< Double_t > gIV_rms;
+  vector< Double_t > gIV_mean;
+  vector< Double_t > gIV_error;
 };  
