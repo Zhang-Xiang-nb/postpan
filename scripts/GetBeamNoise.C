@@ -111,7 +111,10 @@ void GetBeamNoise(TString run_seg, TString name_stem){
       CoherentNoise[kDV] = h_buff->GetRMS();
     }
 
-    
+
+    if(kMinirun>0)
+      fprintf(summary_txt,"\n\n\n\f");
+
     fprintf(summary_txt, " == Mini-run: %d == \n", kMinirun);
     
     fprintf(summary_txt, 
