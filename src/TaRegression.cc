@@ -981,7 +981,7 @@ void TaRegression::FillTree() {
 		    &(DV_raw_dataset[iDV]),
 		    "mean/D:err:rms");
       TString name_buff =DVnames[iDV];
-      name_buff = name_buff.ReplaceAll("asym","reg_asym");
+      name_buff = "reg_"+name_buff;
       regrun.Branch(name_buff,
 		    &(DV_reg_dataset[iDV]),
 		    "mean/D:err:rms");
