@@ -346,13 +346,17 @@ TaRegression::MatrixInit ()
 	// Minirun is constant, using cuts.
 	// Go through the GoodEvents vector to fill the minirange
 	UInt_t ncount=0; UInt_t startcount=0; UInt_t imini=0;
+	Bool_t kStart= kFALSE;
 	for(UInt_t iev=0; iev<GoodEvents.size(); iev++) {
-	  if(GoodEvents[iev] && startcount==0) startcount=iev;
+	  if(GoodEvents[iev] && !kStart) {
+	    startcount=iev;
+	    kStart=kTRUE;
+	  }
 	  if(GoodEvents[iev]) ncount++;
 	  minirun.push_back(imini);
 	  if(ncount==PairsPerMinirun) {
 	    minirange.push_back(make_pair(startcount,iev));
-	    startcount=0; ncount=0; imini++;
+	    startcount=0; ncount=0; imini++;kStart=kFALSE;
 	  }
 	}
 	if(ncount!=0) {
@@ -556,7 +560,7 @@ void TaRegression::ProcessMatrix () {
     for (UInt_t irow = 0; irow<IVnames.size(); irow++) {
       for (UInt_t icol = irow; icol<IVnames.size(); icol++) {
 	Double_t element = 0;
-	for (UInt_t iev = minirange[imini].first; iev<minirange[imini].second; 
+	for (UInt_t iev = minirange[imini].first; iev<=minirange[imini].second; 
 	     iev++) {
 	  if(!GoodEvents[iev]) continue;  // Dont include events that fail cuts
 	  element += ((IVEntries[iev][irow] - IVStats->Mean(irow)) *
@@ -577,7 +581,7 @@ void TaRegression::ProcessMatrix () {
     for(UInt_t iDV = 0; iDV<DVnames.size(); iDV++) {
       for(UInt_t iIV = 0; iIV<IVnames.size(); iIV++) {
 	Double_t element = 0;
-	for (UInt_t iev = minirange[imini].first; iev<minirange[imini].second; 
+	for (UInt_t iev = minirange[imini].first; iev<=minirange[imini].second; 
 	     iev++) {
 	  if(!GoodEvents[iev]) continue; // Dont include events that fail cuts
 	  element += ((IVEntries[iev][iIV] - IVStats->Mean(iIV)) *
@@ -720,7 +724,7 @@ void TaRegression::ProcessMatrix () {
     mIV_err.push_back(iv_err);
     // Regress the IVs from the DVs
     for(UInt_t iev = minirange[imini].first; 
-	iev<minirange[imini].second; iev++) {
+	iev<=minirange[imini].second; iev++) {
       if(!GoodEvents[iev]) continue;
       for(UInt_t iDV = 0; iDV<DVnames.size(); iDV++) {
 	Double_t RIVsum = 0;
@@ -741,7 +745,7 @@ void TaRegression::ProcessMatrix () {
     vector <Double_t> current;
     current.clear();
     for (UInt_t iev=minirange[imini].first; 
-	 iev<minirange[imini].second; iev++) {
+	 iev<=minirange[imini].second; iev++) {
       if (!GoodEvents[iev]) continue;
       current = DVEntries[iev];
       DVStats->Update(current);
