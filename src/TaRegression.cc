@@ -801,8 +801,16 @@ void TaRegression::InitSummary(){
   TString name_stem = fInput->GetNameStem();
   TString run_seg = fInput->GetRunNumberStr(); 
   run_seg.ReplaceAll('.','_');
-  TString output_filename = Form("./results/%s%s_postpan_summary.txt",
-				 name_stem.Data(),run_seg.Data());
+  TString comment_tag = (fInput->GetConfig()).GetCommentTag();
+  TString output_filename;
+  if(comment_tag=="")
+    output_filename = Form("./results/%s%s_postpan_summary.txt",
+				   name_stem.Data(),run_seg.Data());
+  else
+    output_filename = Form("./results/%s%s_postpan_%s.txt",
+			   name_stem.Data(),run_seg.Data(),
+			   comment_tag.Data());
+
   cout << "Output Test Summary: "
        << output_filename << endl;
   summary_txt = fopen(output_filename.Data(), "w");
