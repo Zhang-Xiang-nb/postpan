@@ -297,98 +297,114 @@ TaRegression::MatrixInit ()
   // Need here to decide whether to Calculate Coefficents, Regress
   // Quantites, or both.  For now... just do both
 
-  UInt_t PairsPerMinirun = fInput->GetConfig().GetRegressMinirun();
-
-  if(PairsPerMinirun == 0) {
-    // Produces One minirun for entire run
-    cout << "Minirun unspecified or zero." 
-	 <<"  Generating result for entire run." << endl;
-    minirange.push_back(make_pair(0,TotEvents));
-    for(UInt_t i=0;i<TotEvents;i++)
-      minirun.push_back(0);
-  }
+  if(fInput->GetConfig().MinirunUsesBurstCounter()){
+    // Uses Burst Counter to define miniruns
+    cout << "Using JAPAN Burst counter to define minirun."  << endl;
+    Short_t burst_counter;
+    Int_t burst_start,burst_end;
+    Short_t current_burst=0;
+    burst_start = 0;
+    fPairTree->SetBranchAddress("BurstCounter",&burst_counter);
+    for(UInt_t ient = 0; ient<TotEvents; ient++) {
+      fPairTree->GetEntry(ient);
+      if(burst_counter>current_burst){
+	current_burst = burst_counter;
+	cout << " -- Burst " << burst_counter
+	     <<" : ends at Event Number " << ient-1 << endl;
+	burst_end = ient-1;
+	minirange.push_back(make_pair(burst_start,burst_end));
+	burst_start = ient;
+      }
+      minirun.push_back((UInt_t)burst_counter);
+    }//end of tree entry loop
+    minirange.push_back(make_pair(burst_start,TotEvents-1));
+  }  // if Use Burst Counter
+  else{
+    UInt_t PairsPerMinirun = fInput->GetConfig().GetRegressMinirun();
   
-  if(PairsPerMinirun > 0) {
-    // Produces miniruns specified by config file
-    cout << "Number of pairs per minirun = " << PairsPerMinirun << endl;
-    UInt_t NumMiniruns;
-
-    if(PairsPerMinirun > nGoodEvents) {
-      // For the rare occassion when the number of good events is
-      // less than the number of Pairs per minirun
-      cout << "   Number of good events (" 
-	   << nGoodEvents << ")" 
-	   << " is less than this." << endl
-	   <<"   Generating result for entire run." << endl;
+    if(PairsPerMinirun == 0) {
+      // Produces One minirun for entire run
+      cout << "Minirun unspecified or zero." 
+	   <<"  Generating result for entire run." << endl;
       minirange.push_back(make_pair(0,TotEvents));
       for(UInt_t i=0;i<TotEvents;i++)
 	minirun.push_back(0);
-    } else {
-      if(!fInput->GetConfig().MinirunUsesCuts()) {
-	// Minirun is constant, regardless of cuts.
-	NumMiniruns = TotEvents/PairsPerMinirun;
-	for(UInt_t i = 0; i<NumMiniruns; i++) {
-	  minirange.push_back(make_pair(i*PairsPerMinirun,
-					(i+1)*PairsPerMinirun));
-	}
-	if(minirange[NumMiniruns-1].second<TotEvents) {
-	  minirange.push_back(make_pair(minirange[NumMiniruns-1].second,
-					TotEvents));
-	}
-	// Fill the minirun vector using the defined ranges
-	for (UInt_t imini = 0; imini<minirange.size(); imini++) {
-	  for (UInt_t iev=minirange[imini].first; iev<minirange[imini].second;
-	       iev++) {
-	    minirun.push_back(imini);
-	  }
-	}
-      } else {
-	// Minirun is constant, using cuts.
-	// Go through the GoodEvents vector to fill the minirange
-	UInt_t ncount=0; UInt_t startcount=0; UInt_t imini=0;
-	Bool_t kStart= kFALSE;
-	for(UInt_t iev=0; iev<GoodEvents.size(); iev++) {
-	  if(GoodEvents[iev] && !kStart) {
-	    startcount=iev;
-	    kStart=kTRUE;
-	  }
-	  if(GoodEvents[iev]) ncount++;
-	  minirun.push_back(imini);
-	  if(ncount==PairsPerMinirun) {
-	    minirange.push_back(make_pair(startcount,iev));
-	    startcount=0; ncount=0; imini++;kStart=kFALSE;
-	  }
-	}
-	if(ncount!=0) {
-	  // Combined the pairs left over into the last minirun;
-	  pair <UInt_t,UInt_t> lastmin = minirange.back();
-	  minirange.pop_back();
-	  minirange.push_back(make_pair(lastmin.first,
-					TotEvents-1));
-	  for(UInt_t i=lastmin.first; i<TotEvents; i++) {
-	    minirun[i] = imini-1;
-	  }
-	}
-      }
-      
     }
+  
+    if(PairsPerMinirun > 0) {
+      // Produces miniruns specified by config file
+      cout << "Number of pairs per minirun = " << PairsPerMinirun << endl;
+      UInt_t NumMiniruns;
+
+      if(PairsPerMinirun > nGoodEvents) {
+	// For the rare occassion when the number of good events is
+	// less than the number of Pairs per minirun
+	cout << "   Number of good events (" 
+	     << nGoodEvents << ")" 
+	     << " is less than this." << endl
+	     <<"   Generating result for entire run." << endl;
+	minirange.push_back(make_pair(0,TotEvents));
+	for(UInt_t i=0;i<TotEvents;i++)
+	  minirun.push_back(0);
+      } else {
+	if(!fInput->GetConfig().MinirunUsesCuts()) {
+	  // Minirun is constant, regardless of cuts.
+	  NumMiniruns = TotEvents/PairsPerMinirun;
+	  for(UInt_t i = 0; i<NumMiniruns; i++) {
+	    minirange.push_back(make_pair(i*PairsPerMinirun,
+					  (i+1)*PairsPerMinirun));
+	  }
+	  if(minirange[NumMiniruns-1].second<TotEvents) {
+	    minirange.push_back(make_pair(minirange[NumMiniruns-1].second,
+					  TotEvents));
+	  }
+	  // Fill the minirun vector using the defined ranges
+	  for (UInt_t imini = 0; imini<minirange.size(); imini++) {
+	    for (UInt_t iev=minirange[imini].first; iev<minirange[imini].second;
+		 iev++) {
+	      minirun.push_back(imini);
+	    }
+	  }
+	} else {
+	  // Minirun is constant, using cuts.
+	  // Go through the GoodEvents vector to fill the minirange
+	  UInt_t ncount=0; UInt_t startcount=0; UInt_t imini=0;
+	  Bool_t kStart= kFALSE;
+	  for(UInt_t iev=0; iev<GoodEvents.size(); iev++) {
+	    if(GoodEvents[iev] && !kStart) {
+	      startcount=iev;
+	      kStart=kTRUE;
+	    }
+	    if(GoodEvents[iev]) ncount++;
+	    minirun.push_back(imini);
+	    if(ncount==PairsPerMinirun) {
+	      minirange.push_back(make_pair(startcount,iev));
+	      startcount=0; ncount=0; imini++;kStart=kFALSE;
+	    }
+	  }
+	  if(ncount!=0) {
+	    // Combined the pairs left over into the last minirun;
+	    pair <UInt_t,UInt_t> lastmin = minirange.back();
+	    minirange.pop_back();
+	    minirange.push_back(make_pair(lastmin.first,
+					  TotEvents-1));
+	    for(UInt_t i=lastmin.first; i<TotEvents; i++) {
+	      minirun[i] = imini-1;
+	    }
+	  }
+	}
+      
+      }
     
 #ifdef NOISY2
-    for(UInt_t i = 0; i<minirange.size(); i++) {
-      cout << "Minirun[" << i << "] = " << minirange[i].first 
-	   << " " << (minirange[i].second) << endl;
-    }
+      for(UInt_t i = 0; i<minirange.size(); i++) {
+	cout << "Minirun[" << i << "] = " << minirange[i].first 
+	     << " " << (minirange[i].second) << endl;
+      }
 #endif
-    cout << "Total number of miniruns = " << minirange.size() << endl;
-  }
-  
-  if(PairsPerMinirun < 0) {
-    // Uses BMWcycle to define miniruns - not implimented yet
-    cout << "Using BMWcycle to define number of pairs per minirun." 
-	 << PairsPerMinirun << endl;
-    
-  }
-  
+      cout << "Total number of miniruns = " << minirange.size() << endl;
+    }
+  }  // else if use user define minisize
 }  
  
   

@@ -158,15 +158,20 @@ void TaConfFile::ParseLine(vector <string> line) {
     if(analysis == "dither")  cout << "found dither anatype" << endl;
   }
   if (line[0] == "minirun") {
-    minirunevt = atoi(line[1].c_str());
-    if(line.size()==3) {
-      if(line[2] == "usecuts") {
-	usecuts=kTRUE;
-      } else if(line[2]=="use-pattern") {
-	usecuts=kFALSE;
+    if(line[1]=="burst-counter"){
+      kUseBurstCounter=kTRUE;
+    } else{
+      kUseBurstCounter=kFALSE;
+      minirunevt = atoi(line[1].c_str());
+      if(line.size()==3) {
+	if(line[2] == "usecuts") {
+	  usecuts=kTRUE;
+	} else if(line[2]=="use-pattern") {
+	  usecuts=kFALSE;
+	}
+      } else {
+	usecuts=kTRUE;  // Use cuts by default.
       }
-    } else {
-      usecuts=kTRUE;  // Use cuts by default.
     }
   }
   if (line[0] == "tree") {
@@ -278,7 +283,7 @@ TaConfFile::Print() {
 	     << endl;
       }
       if(GetRegressMinirun() == -1) {
-	cout << "\tWill use BMWcycle to define a minirun" << endl;
+	cout << "\tWill use JAPAN burst count to define a minirun" << endl;
       } else {
 	cout << "\tNumber of events/minirun: " << GetRegressMinirun();
 	  if(usecuts) {

@@ -37,6 +37,7 @@ public:
   TString GetMatrixChoice() { return regmatrixchoice; }
   Int_t GetRegressMinirun() { return minirunevt; }
   Bool_t MinirunUsesCuts() { return usecuts; }
+  Bool_t MinirunUsesBurstCounter() { return kUseBurstCounter; }
   Int_t GetRegressCycles() { return cycles; }
   
   Int_t GetIVNum() { return iv.size(); }
@@ -88,6 +89,7 @@ private:
   TString regmatrixchoice;// Decision to calc coeffs/regress quantities
   Int_t minirunevt;       // Number of pairs/minirun
   Bool_t usecuts;         // True of minirun is defined by pairs passing cuts
+  Bool_t kUseBurstCounter;
   Int_t cycles;           // Number of linear regression cycles.
   
   vector <TString> iv;    // String Array of independent variables
