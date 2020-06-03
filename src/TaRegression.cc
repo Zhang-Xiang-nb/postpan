@@ -1088,7 +1088,7 @@ void TaRegression::FillTree() {
     reg.Fill();
   }
   reg.Write();
-  TH1D* hstat_buff;
+  TH1D *hstat_buff;
   TCut goodCut = "ok_cut";
   double mean_buff, rms_buff, error_buff, nentries_buff;
   for(UInt_t idv=0; idv<DVnames.size();idv++){
@@ -1098,7 +1098,6 @@ void TaRegression::FillTree() {
     rms_buff = hstat_buff->GetRMS();
     nentries_buff = hstat_buff->GetEntries();
     error_buff = rms_buff/sqrt(nentries_buff);
-    
     gDV_raw_mean.push_back(mean_buff);
     gDV_raw_rms.push_back(rms_buff);
     gDV_raw_error.push_back(error_buff);
@@ -1113,7 +1112,6 @@ void TaRegression::FillTree() {
     gDV_reg_mean.push_back(mean_buff);
     gDV_reg_rms.push_back(rms_buff);
     gDV_reg_error.push_back(error_buff);
-
   }
   for(UInt_t iiv=0; iiv<IVnames.size();iiv++){
     reg.Draw(IVnames[iiv],goodCut,"goff");
@@ -1127,6 +1125,7 @@ void TaRegression::FillTree() {
     gIV_rms.push_back(rms_buff);
     gIV_error.push_back(error_buff);
   }
+  gDirectory->FindObject("htemp")->Delete();
 
   if (fInput->GetConfig().GetRegressType() == "matrix") {
     for(UInt_t imini=0; imini<minirange.size(); imini++){
