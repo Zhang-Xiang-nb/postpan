@@ -431,7 +431,7 @@ TaStatistics::MeanErr() const
     {
       for ( size_t i = 0; i < fSumWt.size(); ++i )
 	{
-	  result.push_back ( sqrt (PMeanVar (i)));
+	  result.push_back ( sqrt ( PDataMS (i) / PNeff (i)  ) );
 	}
     }
   else
@@ -566,7 +566,7 @@ TaStatistics::MeanErr (const size_t i) const
     {
       if ( fN > 0 )
 	{
-	  return sqrt (PMeanVar (i));
+	  return sqrt ( PDataMS (i) / PNeff (i)  );
 	}
       else
 	{
@@ -580,7 +580,6 @@ TaStatistics::MeanErr (const size_t i) const
       return 0;
     }
 }      
-
 
 pair<Double_t,Double_t> 
 TaStatistics::MeanAndErr (const size_t i) const   
